@@ -1,10 +1,12 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class Device(BaseModel):
     house_id: int
     serial_number: int
-    user_assigned_name: str
+    user_assigned_name: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class User(BaseModel):

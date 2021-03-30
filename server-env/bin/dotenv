@@ -1,4 +1,4 @@
-#!/home/artyom/src/h1-group-h1/server/server-env/bin/python3
+#!/home/artyom/src/h1-group-h1/server/server-env/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
