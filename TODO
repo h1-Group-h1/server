@@ -1,2 +1,4 @@
 TODO:
-- Replace del_device endpoint params to just id
+- Add the concurrent code for the devices
+- Testing
+- Devices now communicate directly over their serial number

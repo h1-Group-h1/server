@@ -1,8 +1,18 @@
 import paho.mqtt.client as mqtt
 import json
+from schemas import *
 
 client = mqtt.Client()
 
+
+# Returns tuple: (status, payload)
+def operate_device(action: DeviceAction):
+    pass
+
+
+# Returns tuple: (status, payload)
+def add_device_rule(rule: DeviceRule):
+    pass
 
 def on_connect(client, userdata, flags, rc):
     if rc != mqtt.MQTT_ERR_SUCCESS:
@@ -30,6 +40,6 @@ def operate_device(device_id, value):
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect("mqtt.eclipse.org")
+# client.connect("mqtt.eclipse.org")
 
-client.loop_start()
+# client.loop_start()

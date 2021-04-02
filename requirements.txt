@@ -1,4 +1,7 @@
 fastapi
 uvicorn[standard]
 paho-mqtt
-sqlite3
+sqlalchemy
+
+# If for tests:
+# termcolor
