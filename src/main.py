@@ -2,18 +2,25 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
+from threading import Thread
 
 import crud
 import models
 import schemas
 from database import SessionLocal, engine
 import constants
+from devices import mqtt_main, notify_device
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG, filename='../data/app_log.log')
 
 if constants.debug:
     models.Base.metadata.drop_all(engine)
 models.Base.metadata.create_all(bind=engine)
 
-
+mqtt = Thread(target=mqtt_main)
+mqtt.start()
 app = FastAPI()
 
 
@@ -27,7 +34,8 @@ def get_db():
 
 @app.get('/')
 def root():
-    return {'Hello': 'World'}
+    res = notify_device("123", "hello")
+    return {'Hello': res}
 
 
 @app.post('/add_device/{house_id}', response_model=schemas.Device)  # OK
@@ -148,3 +156,6 @@ def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: S
     # Delete rule and add
     crud.delete_rule(db, rule_id)
     return crud.create_house_rule(db, new_rule, house_id)
+
+
+print("MQTT client thread joined")

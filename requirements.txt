@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 paho-mqtt
 sqlalchemy
-
-# If for tests:
-# termcolor
+logging
+multiprocessing
+time
+concurrent

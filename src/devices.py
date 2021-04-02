@@ -1,40 +1,32 @@
+import multiprocessing
+from concurrent.futures.thread import ThreadPoolExecutor
+from threading import Thread
+
 import paho.mqtt.client as mqtt
-import json
-from schemas import *
-
-client = mqtt.Client()
-
-
-def notify_device(device: str, payload: str):
-    pass
 
 
 def on_connect(client, userdata, flags, rc):
-    if rc != mqtt.MQTT_ERR_SUCCESS:
-        print("ERROR: Failed to connect")
-        exit(0)  # Need better solution
-    client.subscribe('$SYS/#')
+    print("MQTT client connected")
+    client.subscribe("server/#")
+    # server/# --> Data from devices to server
+    # devices/# --> Data from server to devices
 
 
 def on_message(client, userdata, msg):
-    print(msg.topic + " " + str(msg.payload))
-    device_id = msg.topic.split('/')
-    payload = json.loads(msg.payload)
-    if device_id[1] == 'sensor':
-        # Sensor or remote
-        pass
-    elif device_id[1] == 'device':
-        # Device
-        pass
+    print("Message from", msg.topic, ":", msg.payload)
 
 
-def operate_device(device_id, value):
-    command = {"command": "operate", "payload": value}
-    client.publish(device_id, json.dump(command))
+def notify_device(device: str, payload: str):
+    global client
+    client.publish("devices/" + device, payload)
 
 
-client.on_connect = on_connect
-client.on_message = on_message
-# client.connect("mqtt.eclipse.org")
+client = mqtt.Client()
 
-# client.loop_start()
+def mqtt_main():
+    global client
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect("test.mosquitto.org")
+    print("Client ready for action")
+    client.loop_start()
