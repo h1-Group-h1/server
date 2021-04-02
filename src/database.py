@@ -5,7 +5,7 @@ import constants
 
 SQLALCHEMY_DATABASE_URL = ""
 if constants.debug:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./database.db"  # For testing, real is later
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./../data/database.db"  # For testing, real is later
 else:
     SQLALCHEMY_DATABASE_URL = ""  # Deployed URL
 

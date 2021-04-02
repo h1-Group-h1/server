@@ -5,14 +5,9 @@ from schemas import *
 client = mqtt.Client()
 
 
-# Returns tuple: (status, payload)
-def operate_device(action: DeviceAction):
+def notify_device(device: str, payload: str):
     pass
 
-
-# Returns tuple: (status, payload)
-def add_device_rule(rule: DeviceRule):
-    pass
 
 def on_connect(client, userdata, flags, rc):
     if rc != mqtt.MQTT_ERR_SUCCESS:

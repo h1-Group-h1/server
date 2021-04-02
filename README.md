@@ -1,12 +1,12 @@
-# server
-Server for the application
+###### Server for the application
 
-To run:
-Linux:
-chmod +x run.sh
-./run.sh
-Windows:
-server-env/bin/activate.ps1 (powershell)
+To run:<br>
+Linux:<br>
+`chmod +x run.sh
+./run.sh`
+<br>Windows:<br>
+`server-env/bin/activate.ps1 (powershell)
 cd src
-uvicorn main:app --reload
+uvicorn main:app --reload`
 
+This will say the IP.

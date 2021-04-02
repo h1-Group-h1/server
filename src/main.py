@@ -1,12 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends
-# from devices import *
 from typing import List
+
+from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
-from .database import SessionLocal,engine
+import crud
+import models
+import schemas
+from database import SessionLocal, engine
 
+models.Base.metadata.drop_all(engine)
 models.Base.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
 
@@ -34,9 +38,12 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
 
 
 @app.delete('/del_device/{device_id}')
-def del_device(device_id: int):
+def del_device(device_id: int, db: Session = Depends(get_db)):
     # Delete device and return status
-    pass
+    result = crud.delete_device(db, device_id)
+    if result < 0:
+        raise HTTPException(status_code=400, detail="Unable to delete device from server")
+    return {"status": "OK"}
 
 
 @app.post('/add_user/', response_model=schemas.User)
@@ -66,8 +73,7 @@ def get_user(email: str, db: Session = Depends(get_db)):
 @app.post('/operate_device/')
 def operate_device(action: schemas.DeviceAction):
     # Operate the device
-    res = operate_device(action)
-    return {"status": res[0], "payload": res[1]}
+    pass
 
 
 @app.post('/add_rule/{house_id}', response_model=schemas.Rule)
@@ -77,9 +83,11 @@ def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_
 
 
 @app.delete('/del_rule/{rule_id}')
-def del_rule(rule_id: int):
-    # Delete rule
-    pass
+def del_rule(rule_id: int, db: Session = Depends(get_db)):
+    res = crud.delete_rule(db, rule_id)
+    if res < 0:
+        raise HTTPException(status_code=400, detail="Rule cannot be deleted")
+    return {"status": "OK"}
 
 
 @app.get('/get_rules/{house_id}', response_model=List[schemas.Rule])
@@ -91,12 +99,10 @@ def get_rules(house_id: int, db: Session = Depends(get_db)):
     return db_rules
 
 
-@app.post('/set_schedule/')
-def set_schedule(schedule: schemas.ScheduleItem):
+@app.post('/set_schedule/{device_id}')
+def set_schedule(device_id: int, schedule: schemas.ScheduleItem):
     # Set schedule, communicate to devices
-
-    res = ""
-    return res
+    pass
 
 
 @app.get('/get_devices/{house_id}', response_model=List[schemas.Device])
@@ -124,5 +130,15 @@ def add_house(user_id: int, house: schemas.HouseCreate, db: Session = Depends(ge
 
 
 @app.delete('/del_house/{house_id}')
-def del_house(house_id: int):
-    pass
+def del_house(house_id: int, db: Session = Depends(get_db)):
+    res = crud.delete_house(db, house_id)
+    if res < 0:
+        raise HTTPException(status_code=400, detail="Unable to delete house")
+    return {"status": "OK"}
+
+
+@app.post('/update_rule/{house_id}/{rule_id}', response_model=schemas.Rule)
+def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: Session = Depends(get_db)):
+    # Delete rule and add
+    crud.delete_rule(db, rule_id)
+    return crud.create_house_rule(db, new_rule, house_id)

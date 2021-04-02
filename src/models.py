@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from .database import Base
+from database import Base
 
 
 class User(Base):
@@ -43,4 +43,4 @@ class Rule(Base):
     action = Column(String)
     house_id = Column(Integer, ForeignKey("houses.id"))
 
-    house_rules = relationship("House", back_populates="house_rules")
+    house_rules = relationship("House", back_populates="rules")
