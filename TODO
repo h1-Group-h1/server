@@ -2,3 +2,4 @@ TODO:
 - Add the concurrent code for the devices
 - Testing
 - Devices now communicate directly over their serial number
+- Add constants for error codes

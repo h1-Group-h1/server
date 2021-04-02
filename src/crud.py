@@ -39,6 +39,9 @@ def get_houses_by_owner_and_name(db: Session, owner_id: int, house_name: str):
 
 
 def create_user_house(db: Session, house: schemas.HouseCreate, user_id: int):
+    prev_house = db.query(models.House).filter(models.House.name == house.name).first()
+    if prev_house:
+        return None
     db_house = models.House(**house.dict(), owner_id=user_id)
     db.add(db_house)
     db.commit()

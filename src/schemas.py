@@ -27,8 +27,7 @@ class RequestResponse(BaseModel):
 
 # Database JSON items
 class DeviceBase(BaseModel):
-    house_id: int
-    user_assigned_name: str
+    name: str
     serial_number: int
 
 
@@ -37,6 +36,8 @@ class DeviceCreate(DeviceBase):
 
 
 class Device(DeviceBase):
+    id: int
+    house_id: int
 
     class Config:
         orm_mode = True
@@ -59,8 +60,9 @@ class User(UserBase):
 
 
 class RuleBase(BaseModel):
-    action: str  # DeviceAction.json()
-    house_id: int
+    action: DeviceAction  # DeviceAction.json()
+    activate_value: int
+    condition: str
 
 
 class RuleCreate(RuleBase):
@@ -68,7 +70,9 @@ class RuleCreate(RuleBase):
 
 
 class Rule(RuleBase):
+    house_id: int
     id: int
+    action: str
 
     class Config:
         orm_mode = True
@@ -76,7 +80,6 @@ class Rule(RuleBase):
 
 class HouseBase(BaseModel):
     name: str
-    owner_id: int
 
 
 class HouseCreate(HouseBase):
@@ -85,6 +88,7 @@ class HouseCreate(HouseBase):
 
 class House(HouseBase):
     id: int
+    owner_id: int
 
     class Config:
         orm_mode = True

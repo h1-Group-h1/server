@@ -41,6 +41,8 @@ class Rule(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     action = Column(String)
+    activate_value = Column(Integer)
+    condition = Column(String)
     house_id = Column(Integer, ForeignKey("houses.id"))
 
     house_rules = relationship("House", back_populates="rules")
