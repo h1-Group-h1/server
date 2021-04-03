@@ -80,13 +80,15 @@ def get_rules_by_house(db: Session, house_id: int):
 
 
 def create_house_rule(db: Session, rule: schemas.RuleCreate, house_id: int):
-    rule_dict = rule.dict()
-    rule_dict["action"] = str(rule_dict["action"])
-    db_rule = models.Rule(**rule_dict, house_id=house_id)
+    db_rule = models.Rule(**rule.dict(), house_id=house_id)
     db.add(db_rule)
     db.commit()
     db.refresh(db_rule)
     return db_rule
+
+
+def get_rule_device(db: Session, rule_id: int, device: int):
+    return db.query(models.Rule).filter(models.Rule.id == rule_id).first().device
 
 
 def delete_item(db: Session, get_fn, id: int):

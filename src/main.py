@@ -34,8 +34,7 @@ def get_db():
 
 @app.get('/')
 def root():
-    res = notify_device("123", "hello")
-    return {'Hello': res}
+    return {'Hello': 'World'}
 
 
 @app.post('/add_device/{house_id}', response_model=schemas.Device)  # OK
@@ -66,7 +65,7 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/get_users/", response_model=List[schemas.User])  # OK
-def read_users(skip:int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
@@ -81,24 +80,54 @@ def get_user(email: str, db: Session = Depends(get_db)):
 
 
 @app.post('/operate_device/')
-def operate_device(action: schemas.DeviceAction):
+def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db)):
     # Operate the device
-    pass
+    try:
+        device_sn = crud.get_device(db, action.id).serial_number
+        notify_device(str(device_sn), action.value.to_bytes(1, "big"))
+        return {"status": "OK"}
+    except:
+        raise HTTPException(status_code=400, detail="Unable to operate device")
 
 
 @app.post('/add_rule/{house_id}', response_model=schemas.Rule)  # OK
 def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_db)):
     # Add the rule
-    x = crud.create_house_rule(db, rule=rule, house_id=house_id)
+    db_rule = crud.create_house_rule(db, rule=rule, house_id=house_id)
     print("OK")
-    return x
+    # Notify the device
+    cond_i = 0
+    if rule.condition == "gr":
+        cond_i = 0
+    elif rule.condition == "eq":
+        cond_i = 1
+    elif rule.condition == "le":
+        cond_i = 2
+    else:
+        raise HTTPException(status_code=400, detail="Invalid value for condition: {0}".format(rule.condition))
+    val = rule.value
+    rule_id = db_rule.id
+    print(cond_i.to_bytes(1, "little"))
+    payload = (cond_i | (val >> 8) | (rule_id >> 16)).to_bytes(6, "little")
+    print(payload)
+    notify_device(str(rule.sensor_id), payload)
+    return db_rule
 
 
 @app.delete('/del_rule/{rule_id}')  # OK
 def del_rule(rule_id: int, db: Session = Depends(get_db)):
+    db_rule = crud.get_rule(db, rule_id)
+    if db_rule is None:
+        raise HTTPException(status_code=400, detail="Cannot find rule in database")
+    cond_i = 3
+    val = 0
+    rule_id = db_rule.id
+    payload = (cond_i | (val >> 8) | (rule_id >> 16)).to_bytes(6, "little")
+    notify_device(str(db_rule.sensor_id), payload)
     res = crud.delete_rule(db, rule_id)
     if res < 0:
         raise HTTPException(status_code=400, detail="Rule cannot be deleted")
+    # Notify device
     return {"status": "OK"}
 
 
@@ -112,9 +141,14 @@ def get_rules(house_id: int, db: Session = Depends(get_db)):
 
 
 @app.post('/set_schedule/{device_id}')
-def set_schedule(device_id: int, schedule: schemas.ScheduleItem):
+def set_schedule(device_id: int, schedule: schemas.ScheduleItem, db: Session = Depends(get_db)):
     # Set schedule, communicate to devices
-    pass
+    type = 1
+    val = schedule.action.value
+    payload = (type | (val >> 8) | (schedule.time_hours >> 16) | (schedule.time_minutes >> 24)).to_bytes(4, "little")
+
+    db_device = crud.get_device(db, schedule.action.id)
+    notify_device(str(db_device.serial_number), payload)
 
 
 @app.get('/get_devices/{house_id}', response_model=List[schemas.Device])  # OK
@@ -154,8 +188,10 @@ def del_house(house_id: int, db: Session = Depends(get_db)):
 @app.post('/update_rule/{house_id}/{rule_id}', response_model=schemas.Rule)  # OK
 def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: Session = Depends(get_db)):
     # Delete rule and add
-    crud.delete_rule(db, rule_id)
-    return crud.create_house_rule(db, new_rule, house_id)
+    del_rule(rule_id, db)
+    return add_rule(house_id, new_rule, db)
 
 
-print("MQTT client thread joined")
+@app.get('/device_status/{device_id}', response_model=schemas.DeviceStatus)  # id is the database id
+def get_device(device_id: int, db: Session = Depends(get_db)):
+    return {"status": crud.get_device(db, device_id).status}

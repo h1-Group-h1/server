@@ -7,7 +7,7 @@ class DeviceId(BaseModel):
 
 
 class DeviceAction(BaseModel):
-    id: str
+    id: int
     value: int
 
 
@@ -16,7 +16,8 @@ class RuleId(BaseModel):
 
 
 class ScheduleItem(BaseModel):
-    time: str
+    time_hours: int
+    time_minutes: int
     action: DeviceAction
 
 
@@ -29,6 +30,7 @@ class RequestResponse(BaseModel):
 class DeviceBase(BaseModel):
     name: str
     serial_number: int
+    type: str
 
 
 class DeviceCreate(DeviceBase):
@@ -60,8 +62,10 @@ class User(UserBase):
 
 
 class RuleBase(BaseModel):
-    action: DeviceAction  # DeviceAction.json()
-    activate_value: int
+    sensor_id: int
+    device_id: int
+    value: int
+    activation_value: int
     condition: str
 
 
@@ -72,7 +76,6 @@ class RuleCreate(RuleBase):
 class Rule(RuleBase):
     house_id: int
     id: int
-    action: str
 
     class Config:
         orm_mode = True
@@ -92,3 +95,7 @@ class House(HouseBase):
 
     class Config:
         orm_mode = True
+
+
+class DeviceStatus(BaseModel):
+    status: str
