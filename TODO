@@ -1,3 +1,5 @@
 TODO:
 - Add constants for error codes
 - Authentication
+- Test MQTT
+- Checksum for devices

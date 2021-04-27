@@ -195,3 +195,10 @@ def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: S
 @app.get('/device_status/{device_id}', response_model=schemas.DeviceStatus)  # id is the database id
 def get_device(device_id: int, db: Session = Depends(get_db)):
     return {"status": crud.get_device(db, device_id).status}
+
+
+@app.post('/add_remote/{house_id}/{remote_sn}')
+def add_remote(house_id: int, remote_sn: int):
+    # Send a message to the remote
+    payload = house_id.to_bytes(6, "little") + b'00' # Checksum
+    notify_device("remotes/{0}".format(remote_sn), payload) # Payload later
