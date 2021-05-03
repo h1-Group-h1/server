@@ -2,7 +2,4 @@ fastapi
 uvicorn[standard]
 paho-mqtt
 sqlalchemy
-logging
-multiprocessing
-time
-concurrent
+# logging==0.4.9.5 # does not work

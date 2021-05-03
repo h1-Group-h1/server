@@ -1,6 +1,6 @@
 
 if [ $(which python3)  !=  $(pwd)/server-env/bin/python3 ]; then
-  ./server-env/bin/activate
+  source ./server-env/bin/activate
 fi
 
 cd src

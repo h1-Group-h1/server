@@ -16,7 +16,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 0):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    db_user = models.User(email=user.email, name=user.name)
+    db_user = models.User(email=user.email, name=user.name, hashed_password=user.hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -26,8 +26,15 @@ def create_user(db: Session, user: schemas.UserCreate):
 def get_house(db: Session, house_id: int):
     return db.query(models.House).filter(models.House.id == house_id).first()
 
+
 def get_houses(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.House).offset(skip).limit(limit).all()
+
+
+def get_house_owner(db: Session, house_id: int):
+    db_house = get_house(db, house_id)
+    if db_house:
+        return get_user(db, db_house.owner_id)
 
 
 def get_houses_by_owner(db: Session, owner_id: int):
@@ -59,6 +66,14 @@ def get_device_by_sn(db: Session, device_sn: int):
 
 def get_devices_by_house(db: Session, house_id: int):
     return db.query(models.Device).filter(models.Device.house_id == house_id).all()
+
+
+def get_device_owner(db: Session, device_id: int):
+    device = db.query(models.Device).filter(models.Device.id == device_id).first()
+    if device:
+        house = get_house(db, device.house_id)
+        if house:
+            return get_user(db, house.owner_id)
 
 
 def create_house_device(db: Session, device: schemas.DeviceCreate, house_id: int):

@@ -48,6 +48,7 @@ class Device(DeviceBase):
 class UserBase(BaseModel):
     email: str
     name: str
+    hashed_password: str
 
 
 class UserCreate(UserBase):
