@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-import models, schemas
+import models
+import schemas
 
 
 def get_user(db: Session, user_id: int):
@@ -56,23 +57,34 @@ def create_user_house(db: Session, house: schemas.HouseCreate, user_id: int):
     return db_house
 
 
-def get_device(db: Session, id: int):
-    return db.query(models.Device).filter(models.Device.id == id).first()
+def get_device(db: Session, device_id: int):
+    return db.query(models.Device).filter(models.Device.id == device_id).first()
 
 
 def get_device_by_sn(db: Session, device_sn: int):
     return db.query(models.Device).filter(models.Device.serial_number == device_sn).first()
 
 
+def get_device_by_name_and_house_id(db: Session, name: str, house_id: int):
+    return db.query(models.Device).filter(models.Device.name == name and models.Device.house_id == house_id)\
+        .first()
+
+
 def get_devices_by_house(db: Session, house_id: int):
     return db.query(models.Device).filter(models.Device.house_id == house_id).all()
+
+
+def get_device_house(db: Session, device_sn: int):
+    return db.query(models.Device).filter(models.Device.serial_number == device_sn).first()
 
 
 def get_device_owner(db: Session, device_id: int):
     device = db.query(models.Device).filter(models.Device.id == device_id).first()
     if device:
+        print("Device found")
         house = get_house(db, device.house_id)
         if house:
+            print("House found")
             return get_user(db, house.owner_id)
 
 
@@ -125,3 +137,16 @@ def delete_house(db: Session, house_id: int):
 
 def delete_rule(db: Session, rule_id: int):
     return delete_item(db, get_rule, rule_id)
+
+
+def update_device_name(db: Session, device_id: int, new_name: str):
+    db.query(models.Device).filter(models.Device.id == device_id)\
+        .update({models.Device.name: new_name}, synchronize_session=False)
+    db.commit()
+    return get_device(db, device_id)
+
+def update_house_name(db: Session, house_id: int, new_name: str):
+    db.query(models.House).filter(models.House.id == house_id)\
+        .update({models.House.name: new_name}, synchronize_session=False)
+    db.commit()
+    return get_house(db, house_id)

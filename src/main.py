@@ -1,21 +1,24 @@
 from typing import List
 import secrets
+
+import pydantic
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
-from threading import Thread
-
-from devices import mqtt_main, notify_device
+import paho.mqtt.client as mqtt
 
 import crud
 import models
 import schemas
 from database import SessionLocal, engine
 import constants
+import json
 
 if constants.debug:
     models.Base.metadata.drop_all(engine)
 models.Base.metadata.create_all(bind=engine)
+
+client = mqtt.Client()
 
 
 def get_db():
@@ -30,9 +33,55 @@ def get_db_normal():
     return next(get_db())
 
 
-mqtt = Thread(target=mqtt_main)
-mqtt.start()
+def notify_device(device: str, payload: bytes):
+    global client
+    client.publish("server/" + device, payload)
+
+
+def on_connect(client, userdata, flags, rc):
+    print("MQTT client connected")
+    client.subscribe("devices/sensors/#")
+    client.subscribe("devices/remotes/#")
+    # server/# --> Data from devices to server
+    # devices/# --> Data from server to devices
+
+
+def on_message(client, userdata, msg):
+    if msg.topic.startswith("devices/sensors") or msg.topic.startswith("devices/remotes"):
+        print(msg.topic)
+        sn = int(msg.topic.split('/')[2])
+        if msg.topic.startswith("devices/sensors"):
+            db = get_db_normal()
+            db_device = crud.get_device_by_sn(db, sn)
+            db_rule = crud.get_rule(db, int(msg.payload))
+            if db_rule:
+                notify_device(str(sn), db_rule.value)
+        elif msg.topic.startswith("devices/remotes"):  # Ignore for now
+            # Remote pressed
+            remote_sn = msg.topic.split('/')[-1]
+            raw = msg.payload.encode("utf-8")
+            command = int(raw[0])
+            sn = int(raw[1:5])
+            value = int(raw[5])
+            if command == 0x1:
+                notify_device(str(sn), (value >> 8).to_bytes(4, "little"))  # Arduino is little-endian
+            else:
+                # Get devices and send
+                db = get_db_normal()
+                db_house = crud.get_device_house(db, sn)
+                db_devices = crud.get_devices_by_house(db, db_house.house_id)
+                for device in db_devices:
+                    print("Sending:", device.serial_number, "name:", device.name)
+                    payload = device.name + "@" + str(device.serial_number)
+                    notify_device(remote_sn, bytes(payload))
+
+
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect("test.mosquitto.org")
+client.loop_start()
 print("MQTT client started")
+
 app = FastAPI()
 security = HTTPBasic()
 
@@ -60,14 +109,8 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
     return credentials.username
 
 
-@app.get('/TEST/get_user')
-def test_get_user(username: str = Depends(get_current_username)):
-    return {"username": username}
-
-
 @app.get('/')
 def root():
-    print(dir(next(get_db())))
     return {'Hello': 'World'}
 
 
@@ -78,11 +121,16 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
     db_device = crud.get_device_by_sn(db, device.serial_number)
     if db_device:
         raise HTTPException(status_code=400, detail="Device already added to database")
+    db_device_by_name = crud.get_device_by_name_and_house_id(db, device.name, house_id)
+    if db_device_by_name:
+        raise HTTPException(status_code=400, detail="Device with same name in database")
+
     db_user = crud.get_user_by_email(db, username)
     db_houses = crud.get_houses_by_owner(db, db_user.id)
     for house in db_houses:
-        print("House:", house.id)
-        if house.id == house_id: # Checks if the house is part of the user
+        if house.id == house_id:  # Checks if the house is part of the user
+            if device.type not in ["sensor", "device", "remote"]:
+                raise HTTPException(status_code=400, detail=f"Incorrect device type { device.type }")
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -109,19 +157,13 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 
-@app.get("/get_users/", response_model=List[schemas.User])  # OK
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
-               username: str = Depends(get_current_username)):
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
-
-
 @app.get('/get_user/{email}', response_model=schemas.User)  # OK
 def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
     # Check if there is user
-    db_user = crud.get_user_by_email(db, email=email)
+    db_user: schemas.User = crud.get_user_by_email(db, email=email)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    db_user.hashed_password = '#'
     return db_user
 
 
@@ -130,12 +172,14 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
                    username: str = Depends(get_current_username)):
     # Operate the device
     try:
-        device_user = crud.get_device_owner(db, action.id)
+        db_device = crud.get_device_by_sn(db, action.serial_number)
+        device_user = crud.get_device_owner(db, db_device.id)
+        print(device_user)
         if device_user and device_user.email == username:
             # Secrets.compare_digest()?
-            notify_device(str(action.id), action.value.to_bytes(1, "big"))
+            notify_device(str(action.serial_number), action.value.to_bytes(1, "big"))
             return {"status": "OK"}
-    finally:
+    except:
         raise HTTPException(status_code=400, detail="Unable to operate device")
 
 
@@ -143,31 +187,26 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
 def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_db),
              username: str = Depends(get_current_username)):
     # Add the rule
-    db_device_user = crud.get_device_owner(db, rule.device_id)
-    db_sensor_user = crud.get_device_owner(db, rule.sensor_id)
-    if not db_device_user or not db_sensor_user\
+    db_device = crud.get_device_by_sn(db, rule.device_sn)
+    db_sensor = crud.get_device_by_sn(db, rule.sensor_sn)
+    db_device_user = crud.get_device_owner(db, db_device.id)
+    db_sensor_user = crud.get_device_owner(db, db_sensor.id)
+    if not db_device_user or not db_sensor_user \
             or db_sensor_user.email != username or db_device_user.email != username:
         raise HTTPException(status_code=400, detail="Unable to set rule")
 
     print("OK")
     # Notify the device
-    cond_i = 0
-    if rule.condition == "gr":
-        cond_i = 0
-    elif rule.condition == "eq":
-        cond_i = 1
-    elif rule.condition == "le":
-        cond_i = 2
-    else:
+    if rule.condition not in ["gr", "le", "eq"]:
         raise HTTPException(status_code=400, detail="Invalid value for condition: {0}".format(rule.condition))
 
     db_rule = crud.create_house_rule(db, rule=rule, house_id=house_id)
-    val = rule.value
-    rule_id = db_rule.id
-    print(cond_i.to_bytes(1, "little"))
-    payload = (cond_i | (val >> 8) | (rule_id >> 16)).to_bytes(6, "little")
-    print(payload)
-    notify_device(str(rule.sensor_id), payload)
+    payload = {
+        "condition": rule.condition,
+        "raw_value": rule.value,
+        "id": db_rule.id
+    }
+    notify_device(str(rule.sensor_sn), bytes(json.dumps(payload), encoding='utf-8'))
     return db_rule
 
 
@@ -182,15 +221,14 @@ def del_rule(rule_id: int, db: Session = Depends(get_db),
     if db_user.email != username:
         raise HTTPException(status_code=400, detail="Unable to delete rule")
 
-    cond_i = 3
-    val = 0
-    rule_id = db_rule.id
-    payload = (cond_i | (val >> 8) | (rule_id >> 16)).to_bytes(6, "little")
-    notify_device(str(db_rule.sensor_id), payload)
-    res = crud.delete_rule(db, rule_id)
+    payload = {
+        "condition": "del",
+        "rule_id": db_rule.id
+    }
+    notify_device(str(db_rule.sensor_sn), bytes(json.dumps(payload), encoding='utf-8'))
+    res = crud.delete_rule(db, db_rule.id)
     if res < 0:
         raise HTTPException(status_code=400, detail="Rule cannot be deleted")
-    # Notify device
     return {"status": "OK"}
 
 
@@ -208,16 +246,23 @@ def get_rules(house_id: int, db: Session = Depends(get_db),
     raise HTTPException(status_code=400, detail="Unable to return rules")
 
 
-@app.post('/set_schedule/{device_id}')
-def set_schedule(device_id: int, schedule: schemas.ScheduleItem, db: Session = Depends(get_db),
+@app.post('/set_schedule')
+def set_schedule(schedule: schemas.ScheduleItem, db: Session = Depends(get_db),
                  username: str = Depends(get_current_username)):
     # Set schedule, communicate to devices
-    type = 1
-    val = schedule.action.value
-    payload = (type | (val >> 8) | (schedule.time_hours >> 16) | (schedule.time_minutes >> 24)).to_bytes(4, "little")
+    db_device = crud.get_device_by_sn(db, schedule.action.serial_number)
+    if not db_device:
+        raise HTTPException(status_code=400, detail="Unable to set schedule")
 
-    db_device = crud.get_device(db, schedule.action.id)
-    notify_device(str(db_device.serial_number), payload)
+    db_user = crud.get_device_owner(db, db_device.id)
+    if db_user and db_user.email == username:
+        payload = {"time_hours": schedule.time_hours,
+                   "time_minutes": schedule.time_minutes,
+                   "value": schedule.action.value}
+
+        notify_device(str(schedule.action.serial_number), bytes(json.dumps(payload), encoding='utf-8'))
+        return {"status": "OK"}
+    raise HTTPException(status_code=400, detail="Unable to set schedule")
 
 
 @app.get('/get_devices/{house_id}', response_model=List[schemas.Device])  # OK
@@ -225,7 +270,7 @@ def get_devices(house_id: int, db: Session = Depends(get_db),
                 username: str = Depends(get_current_username)):
     # Get a list of devices
     db_user = crud.get_house_owner(db, house_id)
-    if db_user and  db_user.email == username:
+    if db_user and db_user.email == username:
 
         db_devices = crud.get_devices_by_house(db, house_id)
         if db_devices is None:
@@ -275,8 +320,8 @@ def del_house(house_id: int, db: Session = Depends(get_db),
 def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: Session = Depends(get_db),
                 username: str = Depends(get_current_username)):
     # Delete rule and add
-    del_rule(rule_id, db)
-    return add_rule(house_id, new_rule, db)
+    del_rule(rule_id, db, username)
+    return add_rule(house_id, new_rule, db, username)
 
 
 @app.post('/add_remote/{house_id}/{remote_sn}')
@@ -285,3 +330,26 @@ def add_remote(house_id: int, remote_sn: int,
     # Send a message to the remote
     payload = house_id.to_bytes(6, "little") + b'00'  # Checksum
     notify_device(str(remote_sn), payload)  # Payload later
+
+
+@app.post('/change_device_name/{device_id}/{new_name}', response_model=schemas.Device)
+def change_device_name(device_id: int, new_name: str, db: Session = Depends(get_db),
+                       username: str = Depends(get_current_username)):
+    device_owner = crud.get_device_owner(db, device_id)
+    db_device = crud.get_device(db, device_id)
+    if device_owner and device_owner.email == username and db_device:
+        return crud.update_device_name(db, device_id, new_name)
+    raise HTTPException(status_code=400, detail="Unable to update name")
+
+
+@app.post('/change_house_name/{house_id}/{new_name}', response_model=schemas.House)
+def change_house_name(house_id: int, new_name: str, db: Session = Depends(get_db),
+                      username: str = Depends(get_current_username)):
+    house_owner = crud.get_house_owner(db, house_id)
+    db_house = crud.get_house(db, house_id)
+    if house_owner and db_house and house_owner.email == username:
+        return crud.update_house_name(db, house_id, new_name)
+    raise HTTPException(status_code=400, detail="Unable to update name")
+
+
+# Schedule

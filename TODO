@@ -1,5 +1,13 @@
 TODO:
 - Add constants for error codes
-- Authentication
-- Test MQTT
-- Checksum for devices
+- compress data going to arduino?
+- remove_schedule
+- get_schedule
+- Add schedule to db
+- logging
+- fix get_user
+
+Master test details:
+
+PATHS   [OK]
+DEVICE  [OK]

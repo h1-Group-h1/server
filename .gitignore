@@ -130,3 +130,5 @@ dmypy.json
 
 **/__pycache__/
 server-env/
+
+.idea/

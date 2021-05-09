@@ -7,7 +7,7 @@ class DeviceId(BaseModel):
 
 
 class DeviceAction(BaseModel):
-    id: int
+    serial_number: int
     value: int
 
 
@@ -63,8 +63,8 @@ class User(UserBase):
 
 
 class RuleBase(BaseModel):
-    sensor_id: int
-    device_id: int
+    sensor_sn: int
+    device_sn: int
     value: int
     activation_value: int
     condition: str

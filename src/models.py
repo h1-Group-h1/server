@@ -43,12 +43,12 @@ class Rule(Base):
     __tablename__ = "rules"
 
     id = Column(Integer, primary_key=True, index=True)
-    sensor_id = Column(Integer)
+    sensor_sn = Column(Integer)
     value = Column(Integer)
     activation_value = Column(Integer)
     condition = Column(String)
     house_id = Column(Integer, ForeignKey("houses.id"))
-    device_id = Column(Integer, ForeignKey("devices.id"))
+    device_sn = Column(Integer, ForeignKey("devices.id"))
 
     house_rules = relationship("House", back_populates="rules")
     device_devices = relationship("Device", back_populates="rule_devices")
