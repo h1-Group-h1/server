@@ -45,6 +45,25 @@ class Device(DeviceBase):
         orm_mode = True
 
 
+class ScheduleBase(BaseModel):
+    time_hours: int
+    time_minutes: int
+    device_id: int
+    house_id: int
+    value: int
+
+
+class ScheduleCreate(ScheduleBase):
+    pass
+
+
+class Schedule(ScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class UserBase(BaseModel):
     email: str
     name: str
@@ -53,6 +72,11 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     pass
+
+
+class UserResponse(BaseModel):
+    email: str
+    name: str
 
 
 class User(UserBase):
@@ -100,3 +124,37 @@ class House(HouseBase):
 
 class DeviceStatus(BaseModel):
     status: str
+
+
+class CommandBase(BaseModel):
+    type: str
+
+
+class OperationCommand(CommandBase):
+    type = "op"
+    val: int
+
+
+class AddRuleCommand(CommandBase):
+    type = "ar"
+    condition: str
+    raw_value: int
+    rule_id: int
+
+
+class DelRuleCommand(CommandBase):
+    type = "dr"
+    rule_id: int
+
+
+class AddScheduleCommand(CommandBase):
+    type = "as"
+    value: int
+    th: int
+    tm: int
+    schedule_id: int
+
+
+class DelScheduleCommand(CommandBase):
+    type = "ds"
+    schedule_id: int

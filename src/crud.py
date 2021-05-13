@@ -66,7 +66,7 @@ def get_device_by_sn(db: Session, device_sn: int):
 
 
 def get_device_by_name_and_house_id(db: Session, name: str, house_id: int):
-    return db.query(models.Device).filter(models.Device.name == name and models.Device.house_id == house_id)\
+    return db.query(models.Device).filter(models.Device.name == name and models.Device.house_id == house_id) \
         .first()
 
 
@@ -140,13 +140,39 @@ def delete_rule(db: Session, rule_id: int):
 
 
 def update_device_name(db: Session, device_id: int, new_name: str):
-    db.query(models.Device).filter(models.Device.id == device_id)\
+    db.query(models.Device).filter(models.Device.id == device_id) \
         .update({models.Device.name: new_name}, synchronize_session=False)
     db.commit()
     return get_device(db, device_id)
 
+
 def update_house_name(db: Session, house_id: int, new_name: str):
-    db.query(models.House).filter(models.House.id == house_id)\
+    db.query(models.House).filter(models.House.id == house_id) \
         .update({models.House.name: new_name}, synchronize_session=False)
     db.commit()
     return get_house(db, house_id)
+
+
+def create_schedule_item(db: Session, schedule: schemas.ScheduleCreate):
+    db_schedule = models.Schedule(**schedule.dict())
+    db.add(db_schedule)
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+
+def get_schedule_item(db: Session, schedule_id: int):
+    return db.query(models.Schedule).filter(models.Schedule.id == schedule_id).first()
+
+
+def delete_schedule_item(db: Session, schedule_id: int):
+    return delete_item(db, get_schedule_item, schedule_id)
+
+
+def get_schedule_owner(db: Session, schedule_id: int):
+    db_schedule = get_schedule_item(db, schedule_id)
+    if db_schedule:
+        return get_house_owner(db, db_schedule.house_id)
+
+def get_schedule_items_by_house(db: Session, house_id: int):
+    return db.query(models.Schedule).filter(models.Schedule.house_id == house_id).all()

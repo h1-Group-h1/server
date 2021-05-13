@@ -12,13 +12,25 @@ import models
 import schemas
 from database import SessionLocal, engine
 import constants
-import json
+import time
 
 if constants.debug:
     models.Base.metadata.drop_all(engine)
 models.Base.metadata.create_all(bind=engine)
 
 client = mqtt.Client()
+
+
+def log(msg, type = constants.info):
+    type_desc = "INFO"
+    if type == constants.error:
+        type_desc = "ERROR"
+    elif type == constants.warning:
+        type_desc = "WARNING"
+
+    print((
+        time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()) + " " + type_desc + ": " + msg
+    ), file=open('../data/app_log.log', 'a'))
 
 
 def get_db():
@@ -130,7 +142,7 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
     for house in db_houses:
         if house.id == house_id:  # Checks if the house is part of the user
             if device.type not in ["sensor", "device", "remote"]:
-                raise HTTPException(status_code=400, detail=f"Incorrect device type { device.type }")
+                raise HTTPException(status_code=400, detail=f"Incorrect device type {device.type}")
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -157,14 +169,16 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 
-@app.get('/get_user/{email}', response_model=schemas.User)  # OK
+@app.get('/get_user/{email}', response_model=schemas.UserResponse)  # OK
 def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
     # Check if there is user
     db_user: schemas.User = crud.get_user_by_email(db, email=email)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    db_user.hashed_password = '#'
-    return db_user
+    return schemas.UserResponse(
+        name=db_user.name,
+        email=db_user.email
+    )
 
 
 @app.post('/operate_device/')
@@ -177,7 +191,10 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
         print(device_user)
         if device_user and device_user.email == username:
             # Secrets.compare_digest()?
-            notify_device(str(action.serial_number), action.value.to_bytes(1, "big"))
+            payload = schemas.OperationCommand(
+                val=action.value
+            )
+            notify_device(str(action.serial_number), bytes(payload.json(), encoding='utf-8'))
             return {"status": "OK"}
     except:
         raise HTTPException(status_code=400, detail="Unable to operate device")
@@ -201,12 +218,12 @@ def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="Invalid value for condition: {0}".format(rule.condition))
 
     db_rule = crud.create_house_rule(db, rule=rule, house_id=house_id)
-    payload = {
-        "condition": rule.condition,
-        "raw_value": rule.value,
-        "id": db_rule.id
-    }
-    notify_device(str(rule.sensor_sn), bytes(json.dumps(payload), encoding='utf-8'))
+    payload = schemas.AddRuleCommand(
+        condition=db_rule.condition,
+        raw_value=db_rule.value,
+        rule_id=db_rule.id
+    )
+    notify_device(str(rule.sensor_sn), bytes(payload.json(), encoding='utf-8'))
     return db_rule
 
 
@@ -221,11 +238,10 @@ def del_rule(rule_id: int, db: Session = Depends(get_db),
     if db_user.email != username:
         raise HTTPException(status_code=400, detail="Unable to delete rule")
 
-    payload = {
-        "condition": "del",
-        "rule_id": db_rule.id
-    }
-    notify_device(str(db_rule.sensor_sn), bytes(json.dumps(payload), encoding='utf-8'))
+    payload = schemas.DelRuleCommand(
+        rule_id=rule_id
+    )
+    notify_device(str(db_rule.sensor_sn), bytes(payload.json(), encoding='utf-8'))
     res = crud.delete_rule(db, db_rule.id)
     if res < 0:
         raise HTTPException(status_code=400, detail="Rule cannot be deleted")
@@ -246,23 +262,51 @@ def get_rules(house_id: int, db: Session = Depends(get_db),
     raise HTTPException(status_code=400, detail="Unable to return rules")
 
 
-@app.post('/set_schedule')
-def set_schedule(schedule: schemas.ScheduleItem, db: Session = Depends(get_db),
+@app.post('/add_schedule')
+def add_schedule(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db),
                  username: str = Depends(get_current_username)):
     # Set schedule, communicate to devices
-    db_device = crud.get_device_by_sn(db, schedule.action.serial_number)
+    db_device = crud.get_device(db, schedule.device_id)
     if not db_device:
         raise HTTPException(status_code=400, detail="Unable to set schedule")
 
     db_user = crud.get_device_owner(db, db_device.id)
     if db_user and db_user.email == username:
-        payload = {"time_hours": schedule.time_hours,
-                   "time_minutes": schedule.time_minutes,
-                   "value": schedule.action.value}
+        db_schedule = crud.create_schedule_item(db, schedule)
+        # Add schedule to database
+        payload = schemas.AddScheduleCommand(
+            value=schedule.value,
+            th=schedule.time_hours,
+            tm=schedule.time_minutes,
+            schedule_id=db_schedule.id
+        )
+        print(payload.json())
 
-        notify_device(str(schedule.action.serial_number), bytes(json.dumps(payload), encoding='utf-8'))
-        return {"status": "OK"}
+        notify_device(str(db_device.serial_number), bytes(payload.json(), encoding='utf-8'))
+        return db_schedule
     raise HTTPException(status_code=400, detail="Unable to set schedule")
+
+
+@app.delete('/del_schedule/{schedule_id}')
+def del_schedule(schedule_id: int, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
+    # Delete schedule
+    db_user = crud.get_schedule_owner(db, schedule_id)
+    if db_user and db_user.email == username:
+        db_schedule = crud.get_schedule_item(db, schedule_id)
+        db_device = crud.get_device(db, db_schedule.device_id)
+        notify_device(str(db_device.serial_number), bytes(schemas.DelScheduleCommand(
+            schedule_id=schedule_id
+        ).json(), encoding='utf-8'))
+        crud.delete_schedule_item(db, schedule_id)
+        return {"status": "OK"}
+    raise HTTPException(status_code=400, detail="Unable to delete schedule")
+
+
+@app.get('/get_schedule_items/{house_id}', response_model=List[schemas.Schedule])
+def get_schedule_items(house_id: int, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
+    db_user = crud.get_house_owner(db, house_id)
+    if db_user and db_user.email == username:
+        return crud.get_schedule_items_by_house(db, house_id)
 
 
 @app.get('/get_devices/{house_id}', response_model=List[schemas.Device])  # OK
@@ -350,6 +394,3 @@ def change_house_name(house_id: int, new_name: str, db: Session = Depends(get_db
     if house_owner and db_house and house_owner.email == username:
         return crud.update_house_name(db, house_id, new_name)
     raise HTTPException(status_code=400, detail="Unable to update name")
-
-
-# Schedule
