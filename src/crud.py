@@ -96,8 +96,6 @@ def create_house_device(db: Session, device: schemas.DeviceCreate, house_id: int
     return db_device
 
 
-# TODO: Update and delete
-
 def get_rule(db: Session, id: int):
     return db.query(models.Rule).filter(models.Rule.id == id).first()
 

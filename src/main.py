@@ -1,7 +1,6 @@
 from typing import List
 import secrets
 
-import pydantic
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
@@ -21,7 +20,7 @@ models.Base.metadata.create_all(bind=engine)
 client = mqtt.Client()
 
 
-def log(msg, type = constants.info):
+def log(msg, type=constants.info):
     type_desc = "INFO"
     if type == constants.error:
         type_desc = "ERROR"
@@ -29,7 +28,7 @@ def log(msg, type = constants.info):
         type_desc = "WARNING"
 
     print((
-        time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()) + " " + type_desc + ": " + msg
+            time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()) + " " + type_desc + ": " + msg
     ), file=open('../data/app_log.log', 'a'))
 
 
@@ -113,6 +112,7 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
     correct_username = secrets.compare_digest(credentials.username, db_username)
     correct_password = secrets.compare_digest(credentials.password, db_password)
     if not (correct_username and correct_password):
+        log(f"Bad username: {db_username} with password: {db_password}", constants.warning)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect credentials",
@@ -143,6 +143,7 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
         if house.id == house_id:  # Checks if the house is part of the user
             if device.type not in ["sensor", "device", "remote"]:
                 raise HTTPException(status_code=400, detail=f"Incorrect device type {device.type}")
+            log(f"Added device: {device.serial_number}", constants.info)
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -156,6 +157,7 @@ def del_device(device_id: int, db: Session = Depends(get_db),
         result = crud.delete_device(db, device_id)
         if result < 0:
             raise HTTPException(status_code=400, detail="Unable to delete device from server")
+        log(f"Deleted device {device_id}", constants.info)
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to delete device from server")
 
@@ -368,6 +370,7 @@ def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: S
     return add_rule(house_id, new_rule, db, username)
 
 
+# Not needed now
 @app.post('/add_remote/{house_id}/{remote_sn}')
 def add_remote(house_id: int, remote_sn: int,
                username: str = Depends(get_current_username)):
@@ -394,3 +397,15 @@ def change_house_name(house_id: int, new_name: str, db: Session = Depends(get_db
     if house_owner and db_house and house_owner.email == username:
         return crud.update_house_name(db, house_id, new_name)
     raise HTTPException(status_code=400, detail="Unable to update name")
+
+
+@app.post('/relay_status/{house_id}')
+def relay_status(house_id: int, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
+    house_owner = crud.get_house_owner(db, house_id)
+    db_house = crud.get_house(db, house_id)
+    if house_owner and db_house and house_owner.email == username:
+        db_devices = crud.get_devices_by_house(db, house_id)
+        for device in db_devices:
+            notify_device(str(device.serial_number), bytes(schemas.RelayStatusCommand().json(), encoding='utf-8'))
+        return {"status": "OK"}
+    raise HTTPException(status_code=400, detail="Unable to notify status")
