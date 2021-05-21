@@ -13,8 +13,8 @@ from database import SessionLocal, engine
 import constants
 import time
 
-if constants.debug:
-    models.Base.metadata.drop_all(engine)
+
+models.Base.metadata.drop_all(engine)
 models.Base.metadata.create_all(bind=engine)
 
 client = mqtt.Client()
@@ -29,7 +29,7 @@ def log(msg, type=constants.info):
 
     print((
             time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()) + " " + type_desc + ": " + msg
-    ), file=open('../data/app_log.log', 'a'))
+    ), file=open('/tmp/app_log.log', 'a'))
 
 
 def get_db():
@@ -280,7 +280,8 @@ def add_schedule(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db)
             value=schedule.value,
             th=schedule.time_hours,
             tm=schedule.time_minutes,
-            schedule_id=db_schedule.id
+            schedule_id=db_schedule.id,
+            repeat=db_schedule.repeat
         )
         print(payload.json())
 

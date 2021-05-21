@@ -51,6 +51,7 @@ class ScheduleBase(BaseModel):
     device_id: int
     house_id: int
     value: int
+    repeat: str
 
 
 class ScheduleCreate(ScheduleBase):
@@ -153,6 +154,7 @@ class AddScheduleCommand(CommandBase):
     th: int
     tm: int
     schedule_id: int
+    repeat: str
 
 
 class DelScheduleCommand(CommandBase):

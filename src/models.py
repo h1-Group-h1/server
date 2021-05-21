@@ -63,6 +63,7 @@ class Schedule(Base):
     time_hours = Column(Integer)
     time_minutes = Column(Integer)
     value = Column(Integer)
+    repeat = Column(String)
 
     house_id = Column(Integer, ForeignKey("houses.id"))
     device_id = Column(Integer, ForeignKey("devices.id"))
