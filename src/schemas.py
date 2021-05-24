@@ -160,7 +160,3 @@ class AddScheduleCommand(CommandBase):
 class DelScheduleCommand(CommandBase):
     type = "ds"
     schedule_id: int
-
-
-class RelayStatusCommand(CommandBase):
-    type = "st"
