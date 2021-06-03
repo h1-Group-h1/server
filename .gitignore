@@ -132,3 +132,4 @@ dmypy.json
 server-env/
 data/
 .idea/
+**/.deta/

@@ -197,7 +197,7 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
                 val=action.value
             )
             notify_device(str(action.serial_number), bytes(payload.json(), encoding='utf-8'))
-            return {"status": "OK"}
+            return {"status": "OK", "device": str(action.serial_number)}
     except:
         raise HTTPException(status_code=400, detail="Unable to operate device")
 
