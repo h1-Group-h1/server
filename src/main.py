@@ -46,13 +46,13 @@ def get_db_normal():
 
 def notify_device(device: str, payload: bytes):
     global client
-    client.publish("server/" + device, payload)
+    client.publish("devices/" + device, payload)
 
 
 def on_connect(client, userdata, flags, rc):
     print("MQTT client connected")
-    client.subscribe("devices/sensors/#")
-    client.subscribe("devices/remotes/#")
+    client.subscribe("server/sensors/#")
+    client.subscribe("server/remotes/#")
     # server/# --> Data from devices to server
     # devices/# --> Data from server to devices
 
