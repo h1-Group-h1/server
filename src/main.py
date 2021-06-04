@@ -171,16 +171,13 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 
-@app.get('/get_user/{email}', response_model=schemas.UserResponse)  # OK
+@app.get('/get_user/{email}', response_model=schemas.User)  # OK
 def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
     # Check if there is user
     db_user: schemas.User = crud.get_user_by_email(db, email=email)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return schemas.UserResponse(
-        name=db_user.name,
-        email=db_user.email
-    )
+    return db_user
 
 
 @app.post('/operate_device/')
