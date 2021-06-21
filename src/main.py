@@ -63,7 +63,7 @@ def on_message(client, userdata, msg):
         sn = int(msg.topic.split('/')[2])
         if msg.topic.startswith("devices/sensors"):
             db = get_db_normal()
-            db_device = crud.get_device_by_sn(db, sn)
+            # db_device = crud.get_device_by_sn(db, sn)
             db_rule = crud.get_rule(db, int(msg.payload))
             if db_rule:
                 notify_device(str(sn), db_rule.value)
@@ -89,7 +89,7 @@ def on_message(client, userdata, msg):
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect("test.mosquitto.org")
+client.connect("broker.hivemq.com")
 client.loop_start()
 print("MQTT client started")
 
