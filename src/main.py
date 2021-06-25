@@ -10,7 +10,7 @@ import crud
 import models
 import schemas
 from database import SessionLocal, engine
-import constants
+from constants import *
 import time
 
 
@@ -89,7 +89,7 @@ def on_message(client, userdata, msg):
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect("broker.hivemq.com")
+client.connect("com-ra-api.co.uk")
 client.loop_start()
 print("MQTT client started")
 
@@ -112,7 +112,7 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
     correct_username = secrets.compare_digest(credentials.username, db_username)
     correct_password = secrets.compare_digest(credentials.password, db_password)
     if not (correct_username and correct_password):
-        log(f"Bad username: {db_username} with password: {db_password}", constants.warning)
+        log(f"Bad username: {db_username} with password: {db_password}", warning)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect credentials",
@@ -141,9 +141,9 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
     db_houses = crud.get_houses_by_owner(db, db_user.id)
     for house in db_houses:
         if house.id == house_id:  # Checks if the house is part of the user
-            if device.type not in ["sensor", "device", "remote"]:
+            if device.type not in [DEVICE_SENSOR, DEVICE_DEVICE]:
                 raise HTTPException(status_code=400, detail=f"Incorrect device type {device.type}")
-            log(f"Added device: {device.serial_number}", constants.info)
+            log(f"Added device: {device.serial_number}", info)
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -157,7 +157,7 @@ def del_device(device_id: int, db: Session = Depends(get_db),
         result = crud.delete_device(db, device_id)
         if result < 0:
             raise HTTPException(status_code=400, detail="Unable to delete device from server")
-        log(f"Deleted device {device_id}", constants.info)
+        log(f"Deleted device {device_id}", info)
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to delete device from server")
 
@@ -180,6 +180,17 @@ def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(
     return db_user
 
 
+@app.delete('/del_user/{user_id}')
+def del_user(user_id: int, db: Session = Depends(get_db), username: str = Depends(get_current_username)):
+    db_user = crud.get_user(db, user_id)
+    if db_user and db_user.email == username:
+        res = crud.delete_user(db, user_id)
+        if res < 0:
+            raise HTTPException(status_code=400, detail="Unable to delete user")
+        return {"status": "OK"}
+    raise HTTPException(status_code=400, detail="Unable to delete user")
+
+
 @app.post('/operate_device/')
 def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
                    username: str = Depends(get_current_username)):
@@ -188,7 +199,7 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
         db_device = crud.get_device_by_sn(db, action.serial_number)
         device_user = crud.get_device_owner(db, db_device.id)
         print(device_user)
-        if device_user and device_user.email == username:
+        if device_user and device_user.email == username and db_device.type == DEVICE_DEVICE:
             # Secrets.compare_digest()?
             payload = schemas.OperationCommand(
                 val=action.value
@@ -208,7 +219,8 @@ def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_
     db_device_user = crud.get_device_owner(db, db_device.id)
     db_sensor_user = crud.get_device_owner(db, db_sensor.id)
     if not db_device_user or not db_sensor_user \
-            or db_sensor_user.email != username or db_device_user.email != username:
+            or db_sensor_user.email != username or db_device_user.email != username \
+            or db_device.type != DEVICE_DEVICE or db_sensor.type != DEVICE_SENSOR:
         raise HTTPException(status_code=400, detail="Unable to set rule")
 
     print("OK")

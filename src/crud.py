@@ -137,6 +137,10 @@ def delete_rule(db: Session, rule_id: int):
     return delete_item(db, get_rule, rule_id)
 
 
+def delete_user(db: Session, user_id: int):
+    return delete_item(db, get_user, user_id)
+
+
 def update_device_name(db: Session, device_id: int, new_name: str):
     db.query(models.Device).filter(models.Device.id == device_id) \
         .update({models.Device.name: new_name}, synchronize_session=False)
