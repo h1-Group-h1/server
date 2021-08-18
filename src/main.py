@@ -116,7 +116,7 @@ def compare_password_hash(user_password, db_password):
 client.on_connect = on_connect
 client.on_message = on_message
 # client.connect("com-ra-api.co.uk")
-client.loop_start()
+# client.loop_start()
 print("MQTT client started")
 
 app = FastAPI()
