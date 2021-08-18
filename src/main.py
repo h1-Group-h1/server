@@ -14,6 +14,7 @@ import constants
 import time
 import os
 import hashlib
+import binascii
 
 
 models.Base.metadata.drop_all(engine)
@@ -100,15 +101,16 @@ def hash_password(password, salt=None):
         salt,
         100000
     )
-    return key + ":" + salt
+    return binascii.hexlify(key).decode('ascii') + ":" + binascii.hexlify(salt).decode('ascii')
 
 
 def compare_password_hash(user_password, db_password):
     # get the salt from the db_password
     key_salt = db_password.split(":")
     # hash the password using the salt
-    hashed_password = hash_password(user_password, key_salt[1])
-    return (hash_password == db_password)
+    hashed_password = hash_password(
+        user_password, binascii.a2b_hex(key_salt[1]))
+    return (hashed_password == db_password)
 
 
 client.on_connect = on_connect
