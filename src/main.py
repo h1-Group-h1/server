@@ -12,6 +12,8 @@ import schemas
 from database import SessionLocal, engine
 from constants import *
 import time
+import os
+import hashlib
 
 
 models.Base.metadata.drop_all(engine)
@@ -28,7 +30,8 @@ def log(msg, type=constants.info):
         type_desc = "WARNING"
 
     print((
-            time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()) + " " + type_desc + ": " + msg
+        time.strftime("[%d %m %Y, %H:%M:%S]", time.localtime()
+                      ) + " " + type_desc + ": " + msg
     ), file=open('/tmp/app_log.log', 'a'))
 
 
@@ -75,7 +78,8 @@ def on_message(client, userdata, msg):
             sn = int(raw[1:5])
             value = int(raw[5])
             if command == 0x1:
-                notify_device(str(sn), (value >> 8).to_bytes(4, "little"))  # Arduino is little-endian
+                notify_device(str(sn), (value >> 8).to_bytes(
+                    4, "little"))  # Arduino is little-endian
             else:
                 # Get devices and send
                 db = get_db_normal()
@@ -85,6 +89,26 @@ def on_message(client, userdata, msg):
                     print("Sending:", device.serial_number, "name:", device.name)
                     payload = device.name + "@" + str(device.serial_number)
                     notify_device(remote_sn, bytes(payload))
+
+
+def hash_password(password, salt=None):
+    if salt == None:
+        salt = os.urandom(32)
+    key = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt,
+        100000
+    )
+    return key + ":" + salt
+
+
+def compare_password_hash(user_password, db_password):
+    # get the salt from the db_password
+    key_salt = db_password.split(":")
+    # hash the password using the salt
+    hashed_password = hash_password(user_password, key_salt[1])
+    return (hash_password == db_password)
 
 
 client.on_connect = on_connect
@@ -109,8 +133,11 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
         )
     db_username = username_result.email
     db_password = username_result.hashed_password
-    correct_username = secrets.compare_digest(credentials.username, db_username)
-    correct_password = secrets.compare_digest(credentials.password, db_password)
+    correct_username = secrets.compare_digest(
+        credentials.username, db_username)
+    # correct_password = secrets.compare_digest(credentials.password, db_password) #Old method; before hashing was added
+    # new method:
+    correct_password = compare_password_hash(credentials.password, db_password)
     if not (correct_username and correct_password):
         log(f"Bad username: {db_username} with password: {db_password}", warning)
         raise HTTPException(
@@ -132,17 +159,21 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
     # Add device, return created id
     db_device = crud.get_device_by_sn(db, device.serial_number)
     if db_device:
-        raise HTTPException(status_code=400, detail="Device already added to database")
-    db_device_by_name = crud.get_device_by_name_and_house_id(db, device.name, house_id)
+        raise HTTPException(
+            status_code=400, detail="Device already added to database")
+    db_device_by_name = crud.get_device_by_name_and_house_id(
+        db, device.name, house_id)
     if db_device_by_name:
-        raise HTTPException(status_code=400, detail="Device with same name in database")
+        raise HTTPException(
+            status_code=400, detail="Device with same name in database")
 
     db_user = crud.get_user_by_email(db, username)
     db_houses = crud.get_houses_by_owner(db, db_user.id)
     for house in db_houses:
         if house.id == house_id:  # Checks if the house is part of the user
             if device.type not in [DEVICE_SENSOR, DEVICE_DEVICE]:
-                raise HTTPException(status_code=400, detail=f"Incorrect device type {device.type}")
+                raise HTTPException(
+                    status_code=400, detail=f"Incorrect device type {device.type}")
             log(f"Added device: {device.serial_number}", info)
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
@@ -156,14 +187,20 @@ def del_device(device_id: int, db: Session = Depends(get_db),
     if device_user and device_user.email == username:
         result = crud.delete_device(db, device_id)
         if result < 0:
-            raise HTTPException(status_code=400, detail="Unable to delete device from server")
+            raise HTTPException(
+                status_code=400, detail="Unable to delete device from server")
         log(f"Deleted device {device_id}", info)
         return {"status": "OK"}
-    raise HTTPException(status_code=400, detail="Unable to delete device from server")
+    raise HTTPException(
+        status_code=400, detail="Unable to delete device from server")
 
 
 @app.post('/add_user/', response_model=schemas.User)  # OK
 def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    # hash the user's password
+    user.hashed_password = hash_password(user.hashed_password)
+
     # Add user and return unique code
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
@@ -186,7 +223,8 @@ def del_user(user_id: int, db: Session = Depends(get_db), username: str = Depend
     if db_user and db_user.email == username:
         res = crud.delete_user(db, user_id)
         if res < 0:
-            raise HTTPException(status_code=400, detail="Unable to delete user")
+            raise HTTPException(
+                status_code=400, detail="Unable to delete user")
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to delete user")
 
@@ -204,7 +242,8 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
             payload = schemas.OperationCommand(
                 val=action.value
             )
-            notify_device(str(action.serial_number), bytes(payload.json(), encoding='utf-8'))
+            notify_device(str(action.serial_number), bytes(
+                payload.json(), encoding='utf-8'))
             return {"status": "OK", "device": str(action.serial_number)}
     except:
         raise HTTPException(status_code=400, detail="Unable to operate device")
@@ -226,7 +265,8 @@ def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_
     print("OK")
     # Notify the device
     if rule.condition not in ["gr", "le", "eq"]:
-        raise HTTPException(status_code=400, detail="Invalid value for condition: {0}".format(rule.condition))
+        raise HTTPException(
+            status_code=400, detail="Invalid value for condition: {0}".format(rule.condition))
 
     db_rule = crud.create_house_rule(db, rule=rule, house_id=house_id)
     payload = schemas.AddRuleCommand(
@@ -243,7 +283,8 @@ def del_rule(rule_id: int, db: Session = Depends(get_db),
              username: str = Depends(get_current_username)):
     db_rule = crud.get_rule(db, rule_id)
     if db_rule is None:
-        raise HTTPException(status_code=400, detail="Cannot find rule in database")
+        raise HTTPException(
+            status_code=400, detail="Cannot find rule in database")
     db_user = crud.get_house_owner(db, db_rule.house_id)
 
     if db_user.email != username:
@@ -252,7 +293,8 @@ def del_rule(rule_id: int, db: Session = Depends(get_db),
     payload = schemas.DelRuleCommand(
         rule_id=rule_id
     )
-    notify_device(str(db_rule.sensor_sn), bytes(payload.json(), encoding='utf-8'))
+    notify_device(str(db_rule.sensor_sn), bytes(
+        payload.json(), encoding='utf-8'))
     res = crud.delete_rule(db, db_rule.id)
     if res < 0:
         raise HTTPException(status_code=400, detail="Rule cannot be deleted")
@@ -268,7 +310,8 @@ def get_rules(house_id: int, db: Session = Depends(get_db),
 
         db_rules = crud.get_rules_by_house(db, house_id)
         if db_rules is None:
-            raise HTTPException(status_code=404, detail="No rules found for house")
+            raise HTTPException(
+                status_code=404, detail="No rules found for house")
         return db_rules
     raise HTTPException(status_code=400, detail="Unable to return rules")
 
@@ -294,7 +337,8 @@ def add_schedule(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db)
         )
         print(payload.json())
 
-        notify_device(str(db_device.serial_number), bytes(payload.json(), encoding='utf-8'))
+        notify_device(str(db_device.serial_number),
+                      bytes(payload.json(), encoding='utf-8'))
         return db_schedule
     raise HTTPException(status_code=400, detail="Unable to set schedule")
 
@@ -330,7 +374,8 @@ def get_devices(house_id: int, db: Session = Depends(get_db),
 
         db_devices = crud.get_devices_by_house(db, house_id)
         if db_devices is None:
-            raise HTTPException(status_code=404, detail="No devices found for user")
+            raise HTTPException(
+                status_code=404, detail="No devices found for user")
         return db_devices
     raise HTTPException(status_code=400, detail="Unable to return devices")
 
@@ -344,7 +389,8 @@ def get_houses(user_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=400, detail="Unable to return houses")
     db_houses = crud.get_houses_by_owner(db, user_id)
     if db_houses is None:
-        raise HTTPException(status_code=404, detail="User does not have any houses")
+        raise HTTPException(
+            status_code=404, detail="User does not have any houses")
     return db_houses
 
 
@@ -356,7 +402,8 @@ def add_house(user_id: int, house: schemas.HouseCreate, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail="Unable to add house")
     new_house = crud.create_user_house(db=db, house=house, user_id=user_id)
     if new_house is None:
-        raise HTTPException(status_code=400, detail="House with same name already added")
+        raise HTTPException(
+            status_code=400, detail="House with same name already added")
     return new_house
 
 
@@ -367,12 +414,14 @@ def del_house(house_id: int, db: Session = Depends(get_db),
     if house_owner and house_owner.email == username:
         res = crud.delete_house(db, house_id)
         if res < 0:
-            raise HTTPException(status_code=400, detail="Unable to delete house")
+            raise HTTPException(
+                status_code=400, detail="Unable to delete house")
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to delete house")
 
 
-@app.post('/update_rule/{house_id}/{rule_id}', response_model=schemas.Rule)  # OK
+# OK
+@app.post('/update_rule/{house_id}/{rule_id}', response_model=schemas.Rule)
 def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: Session = Depends(get_db),
                 username: str = Depends(get_current_username)):
     # Delete rule and add
@@ -416,6 +465,7 @@ def relay_status(house_id: int, db: Session = Depends(get_db), username: str = D
     if house_owner and db_house and house_owner.email == username:
         db_devices = crud.get_devices_by_house(db, house_id)
         for device in db_devices:
-            notify_device(str(device.serial_number), bytes(schemas.RelayStatusCommand().json(), encoding='utf-8'))
+            notify_device(str(device.serial_number), bytes(
+                schemas.RelayStatusCommand().json(), encoding='utf-8'))
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to notify status")
