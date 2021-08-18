@@ -1,0 +1,206 @@
+INFO:     Started server process [483644]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on https://0.0.0.0:443 (Press CTRL+C to quit)
+MQTT client started
+MQTT client connected
+INFO:     78.0.113.162:46796 - "GET /docs HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46796 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for connections to close. (CTRL+C to force quit)
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [483644]
+INFO:     Started server process [483663]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on https://0.0.0.0:443 (Press CTRL+C to quit)
+MQTT client started
+MQTT client connected
+INFO:     78.0.113.162:46800 - "GET /docs HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46800 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46800 - "GET /docs HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46800 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     86.155.243.61:58780 - "GET /docs HTTP/1.1" 200 OK
+INFO:     86.155.243.61:58780 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46802 - "POST /add_user/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/protocols/http/httptools_impl.py", line 371, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/middleware/proxy_headers.py", line 59, in __call__
+    return await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/applications.py", line 199, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 181, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 82, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 52, in app
+    response = await func(request)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/routing.py", line 214, in app
+    raw_response = await run_endpoint_function(
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/routing.py", line 151, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await loop.run_in_executor(None, func, *args)
+  File "/usr/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "./main.py", line 202, in add_user
+    user.hashed_password = hash_password(user.hashed_password)
+  File "./main.py", line 103, in hash_password
+    return key + ":" + salt
+TypeError: can't concat str to bytes
+INFO:     86.155.243.61:58784 - "GET /get_user/exampleuser%40ra.com HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:50592 - "GET /get_user/exampleuser%40ra.com HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:50597 - "POST /add_user/ HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/protocols/http/httptools_impl.py", line 371, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/middleware/proxy_headers.py", line 59, in __call__
+    return await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/applications.py", line 199, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 181, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 82, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 52, in app
+    response = await func(request)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/routing.py", line 214, in app
+    raw_response = await run_endpoint_function(
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/routing.py", line 151, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await loop.run_in_executor(None, func, *args)
+  File "/usr/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "./main.py", line 202, in add_user
+    user.hashed_password = hash_password(user.hashed_password)
+  File "./main.py", line 103, in hash_password
+    return key + ":" + salt
+TypeError: can't concat str to bytes
+INFO:     Started server process [484636]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 443): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+MQTT client started
+MQTT client connected
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [483663]
+INFO:     Started server process [484660]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on https://0.0.0.0:443 (Press CTRL+C to quit)
+MQTT client started
+MQTT client connected
+INFO:     78.0.113.162:46808 - "GET /docs HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46808 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46810 - "POST /add_user/ HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46812 - "GET /get_user/string HTTP/1.1" 401 Unauthorized
+INFO:     78.0.113.162:46812 - "GET /get_user/string HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54217 - "GET /docs HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54217 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54227 - "POST /add_user/ HTTP/1.1" 200 OK
+INFO:     185.90.136.175:44278 - "GET / HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54233 - "GET /get_user/sam007burke%40hotmail.com HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:54234 - "GET /get_user/sam007burke%40hotmail.com HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54276 - "GET /docs HTTP/1.1" 200 OK
+INFO:     86.155.243.61:54276 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     34.216.159.158:56005 - "GET / HTTP/1.1" 200 OK
+INFO:     34.215.170.77:25083 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     86.155.243.61:45119 - "POST /add_user/ HTTP/1.1" 200 OK
+INFO:     86.155.243.61:45151 - "GET /get_user/exampleuser%40ra.com HTTP/1.1" 200 OK
+INFO:     86.155.243.61:45151 - "GET /get_houses/3 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/protocols/http/httptools_impl.py", line 371, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+  File "/usr/local/lib/python3.8/dist-packages/uvicorn/middleware/proxy_headers.py", line 59, in __call__
+    return await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/applications.py", line 199, in __call__
+    await super().__call__(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 181, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/middleware/errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 82, in __call__
+    raise exc from None
+  File "/usr/local/lib/python3.8/dist-packages/starlette/exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/routing.py", line 52, in app
+    response = await func(request)
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/routing.py", line 204, in app
+    solved_result = await solve_dependencies(
+  File "/usr/local/lib/python3.8/dist-packages/fastapi/dependencies/utils.py", line 550, in solve_dependencies
+    solved = await run_in_threadpool(call, **sub_values)
+  File "/usr/local/lib/python3.8/dist-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await loop.run_in_executor(None, func, *args)
+  File "/usr/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "./main.py", line 144, in get_current_username
+    log(f"Bad username: {db_username} with password: {db_password}", warning)
+NameError: name 'warning' is not defined
+INFO:     86.155.243.61:55288 - "POST /add_house/3 HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:55288 - "POST /add_house/3 HTTP/1.1" 400 Bad Request
+INFO:     86.155.243.61:55848 - "GET /get_houses/3 HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:55848 - "GET /get_houses/3 HTTP/1.1" 400 Bad Request
+INFO:     86.155.243.61:49730 - "GET /get_user/exampleuser%40ra.com HTTP/1.1" 200 OK
+MQTT client connected
+MQTT client connected
+INFO:     93.174.95.106:60706 - "GET / HTTP/1.1" 200 OK
+INFO:     93.174.95.106:39328 - "GET /robots.txt HTTP/1.1" 404 Not Found
+INFO:     93.174.95.106:39414 - "GET /sitemap.xml HTTP/1.1" 404 Not Found
+INFO:     93.174.95.106:39490 - "GET /.well-known/security.txt HTTP/1.1" 404 Not Found
+INFO:     93.174.95.106:39816 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     34.79.107.251:59808 - "GET / HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46820 - "GET /docs HTTP/1.1" 200 OK
+INFO:     78.0.113.162:46820 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     138.246.253.24:59676 - "GET /robots.txt HTTP/1.1" 404 Not Found
+INFO:     192.241.204.181:57534 - "GET /owa/auth/x.js HTTP/1.1" 404 Not Found
+INFO:     192.241.221.164:42262 - "GET /ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application HTTP/1.1" 404 Not Found
+INFO:     185.90.136.176:40974 - "GET / HTTP/1.1" 200 OK
+INFO:     192.241.196.15:49900 - "GET /owa/auth/logon.aspx HTTP/1.1" 404 Not Found
+INFO:     86.155.243.61:57493 - "GET / HTTP/1.1" 200 OK
+INFO:     86.155.243.61:57493 - "GET /docs HTTP/1.1" 200 OK
+INFO:     86.155.243.61:57493 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     86.155.243.61:57506 - "POST /add_house/1 HTTP/1.1" 401 Unauthorized
+INFO:     86.155.243.61:57507 - "POST /add_house/1 HTTP/1.1" 400 Bad Request
+INFO:     Started server process [496589]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 443): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+MQTT client started
