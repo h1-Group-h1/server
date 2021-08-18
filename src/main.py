@@ -10,7 +10,7 @@ import crud
 import models
 import schemas
 from database import SessionLocal, engine
-from constants import *
+import constants
 import time
 import os
 import hashlib
