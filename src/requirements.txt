@@ -1,5 +1,0 @@
-fastapi
-uvicorn[standard]
-paho-mqtt
-sqlalchemy
-# logging==0.4.9.5 # does not work

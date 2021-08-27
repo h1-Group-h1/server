@@ -68,8 +68,14 @@ class Schedule(ScheduleBase):
 class UserBase(BaseModel):
     email: str
     name: str
-    hashed_password: str
+    password: str
 
+class UserResponseBase(BaseModel):
+    id: int
+
+class UserResponse(UserResponseBase):
+    email: str
+    name: str
 
 class UserCreate(UserBase):
     pass

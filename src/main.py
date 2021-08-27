@@ -17,8 +17,8 @@ import hashlib
 import binascii
 
 
-models.Base.metadata.drop_all(engine)
-models.Base.metadata.create_all(bind=engine)
+#models.Base.metadata.drop_all(engine)
+#models.Base.metadata.create_all(bind=engine)
 
 client = mqtt.Client()
 
@@ -108,9 +108,9 @@ def compare_password_hash(user_password, db_password):
     # get the salt from the db_password
     key_salt = db_password.split(":")
     # hash the password using the salt
-    hashed_password = hash_password(
+    password = hash_password(
         user_password, binascii.a2b_hex(key_salt[1]))
-    return (hashed_password == db_password)
+    return (password == db_password)
 
 
 client.on_connect = on_connect
@@ -134,14 +134,14 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
             headers={"WWW-Authenticate": "Basic"},
         )
     db_username = username_result.email
-    db_password = username_result.hashed_password
+    db_password = username_result.password
     correct_username = secrets.compare_digest(
         credentials.username, db_username)
     # correct_password = secrets.compare_digest(credentials.password, db_password) #Old method; before hashing was added
     # new method:
     correct_password = compare_password_hash(credentials.password, db_password)
     if not (correct_username and correct_password):
-        log(f"Bad username: {db_username} with password: {db_password}", warning)
+        log(f"Bad username: {db_username} with password: {db_password}", constants.warning)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect credentials",
@@ -173,10 +173,10 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
     db_houses = crud.get_houses_by_owner(db, db_user.id)
     for house in db_houses:
         if house.id == house_id:  # Checks if the house is part of the user
-            if device.type not in [DEVICE_SENSOR, DEVICE_DEVICE]:
+            if device.type not in [constants.DEVICE_SENSOR, constants.DEVICE_DEVICE]:
                 raise HTTPException(
                     status_code=400, detail=f"Incorrect device type {device.type}")
-            log(f"Added device: {device.serial_number}", info)
+            log(f"Added device: {device.serial_number}", constants.info)
             return crud.create_house_device(db, device, house_id)
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -201,7 +201,7 @@ def del_device(device_id: int, db: Session = Depends(get_db),
 def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # hash the user's password
-    user.hashed_password = hash_password(user.hashed_password)
+    user.password = hash_password(user.password)
 
     # Add user and return unique code
     db_user = crud.get_user_by_email(db, email=user.email)
@@ -216,6 +216,8 @@ def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(
     db_user: schemas.User = crud.get_user_by_email(db, email=email)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    print(db_user.id)
+    db_user.password = "&&&&&"
     return db_user
 
 
