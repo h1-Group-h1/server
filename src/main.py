@@ -17,8 +17,9 @@ import hashlib
 import binascii
 
 
-#models.Base.metadata.drop_all(engine)
-#models.Base.metadata.create_all(bind=engine)
+if constants.debug:
+    models.Base.metadata.drop_all(engine)
+    models.Base.metadata.create_all(bind=engine)
 
 client = mqtt.Client()
 
@@ -191,7 +192,7 @@ def del_device(device_id: int, db: Session = Depends(get_db),
         if result < 0:
             raise HTTPException(
                 status_code=400, detail="Unable to delete device from server")
-        log(f"Deleted device {device_id}", info)
+        log(f"Deleted device {device_id}", constants.info)
         return {"status": "OK"}
     raise HTTPException(
         status_code=400, detail="Unable to delete device from server")
@@ -207,7 +208,8 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    return crud.create_user(db=db, user=user)
+    new_user = crud.create_user(db=db, user=user)
+    return new_user
 
 
 @app.get('/get_user/{email}', response_model=schemas.User)  # OK
@@ -217,7 +219,6 @@ def get_user(email: str, db: Session = Depends(get_db), username: str = Depends(
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     print(db_user.id)
-    db_user.password = "&&&&&"
     return db_user
 
 
@@ -241,7 +242,7 @@ def operate_device(action: schemas.DeviceAction, db: Session = Depends(get_db),
         db_device = crud.get_device_by_sn(db, action.serial_number)
         device_user = crud.get_device_owner(db, db_device.id)
         print(device_user)
-        if device_user and device_user.email == username and db_device.type == DEVICE_DEVICE:
+        if device_user and device_user.email == username and db_device.type == constants.DEVICE_DEVICE:
             # Secrets.compare_digest()?
             payload = schemas.OperationCommand(
                 val=action.value
@@ -263,7 +264,7 @@ def add_rule(house_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_
     db_sensor_user = crud.get_device_owner(db, db_sensor.id)
     if not db_device_user or not db_sensor_user \
             or db_sensor_user.email != username or db_device_user.email != username \
-            or db_device.type != DEVICE_DEVICE or db_sensor.type != DEVICE_SENSOR:
+            or db_device.type != constants.DEVICE_DEVICE or db_sensor.type != constants.DEVICE_SENSOR:
         raise HTTPException(status_code=400, detail="Unable to set rule")
 
     print("OK")
@@ -319,9 +320,11 @@ def get_rules(house_id: int, db: Session = Depends(get_db),
         return db_rules
     raise HTTPException(status_code=400, detail="Unable to return rules")
 
-
-@app.post('/add_schedule')
-def add_schedule(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db),
+# TODO: fix this up
+# Schedule repeat = "1--4567"
+# Repeats monday,thur,fri,sat,sun
+@app.post('/add_schedule/{house_id}')
+def add_schedule(house_id: int, schedule: schemas.ScheduleCreate, db: Session = Depends(get_db),
                  username: str = Depends(get_current_username)):
     # Set schedule, communicate to devices
     db_device = crud.get_device(db, schedule.device_id)
@@ -330,7 +333,7 @@ def add_schedule(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db)
 
     db_user = crud.get_device_owner(db, db_device.id)
     if db_user and db_user.email == username:
-        db_schedule = crud.create_schedule_item(db, schedule)
+        db_schedule = crud.create_schedule_item(db, schedule, house_id=house_id)
         # Add schedule to database
         payload = schemas.AddScheduleCommand(
             value=schedule.value,

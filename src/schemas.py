@@ -1,3 +1,4 @@
+from sqlalchemy.sql.expression import intersect_all
 from pydantic import BaseModel
 
 
@@ -49,7 +50,6 @@ class ScheduleBase(BaseModel):
     time_hours: int
     time_minutes: int
     device_id: int
-    house_id: int
     value: int
     repeat: str
 
@@ -59,6 +59,7 @@ class ScheduleCreate(ScheduleBase):
 
 
 class Schedule(ScheduleBase):
+    house_id: int
     id: int
 
     class Config:

@@ -155,8 +155,8 @@ def update_house_name(db: Session, house_id: int, new_name: str):
     return get_house(db, house_id)
 
 
-def create_schedule_item(db: Session, schedule: schemas.ScheduleCreate):
-    db_schedule = models.Schedule(**schedule.dict())
+def create_schedule_item(db: Session, schedule: schemas.ScheduleCreate, house_id: int):
+    db_schedule = models.Schedule(**schedule.dict(), house_id=house_id)
     db.add(db_schedule)
     db.commit()
     db.refresh(db_schedule)
