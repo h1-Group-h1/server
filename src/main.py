@@ -153,7 +153,7 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security),
 
 @app.get('/')
 def root():
-    return {'Hello': 'World'}
+    return {'Version': constants.version, 'Debug': constants.debug}
 
 
 @app.post('/add_device/{house_id}', response_model=schemas.Device)  # OK
