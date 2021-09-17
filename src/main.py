@@ -487,6 +487,7 @@ def relay_status(house_id: int, db: Session = Depends(get_db), username: str = D
 ## System level tasks
 def check_creds(username: str, access_key: int):
     global current_access_key
+    print(username, current_access_key, access_key)
     return username == "admin" and current_access_key > 0 and access_key == current_access_key
 
 def invalidate_access_key():
@@ -516,6 +517,7 @@ def admin_add_device(access_key: int, device_sn: int,
                 raise HTTPException(status_code=400, detail="Device already added")
         devices_file.write(str(device_sn) + "," + device_passwd)
         devices_file.close()
+        return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 @app.post('/admin/{access_key}/restart_broker/')

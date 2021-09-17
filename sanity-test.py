@@ -64,7 +64,7 @@ def do_test(method, endpoint, expected_response=None, data=None):
 
 
 
-do_test("GET", "", expected_response={"Hello": "World"})
+do_test("GET", "", expected_response={"Debug": False})
 user = do_test("POST", "add_user", {"email": USERNAME, "name": "sanity"}, data={
   "email": USERNAME,
   "name": "sanity",
@@ -75,7 +75,7 @@ user = do_test("POST", "add_user", {"email": USERNAME, "name": "sanity"}, data={
 id = user["id"]
 do_test("GET", f"get_user/{USERNAME}", expected_response=user)
 
-HOUSENAME1 = "hn1"
+HOUSENAME1 = "hn1_"
 house = do_test("POST", f"add_house/{id}", expected_response={"name" : HOUSENAME1, "owner_id": id}, data={
   "name": HOUSENAME1
 })
@@ -91,22 +91,22 @@ house2 = do_test("POST", f"change_house_name/{house_id}/hn2", expected_response=
 
 ## Devices
 device1 = do_test("POST", f"add_device/{house_id}", data={
-  "name": "dev1",
+  "name": "dev1_",
   "serial_number": 1,
   "type": "device"
 }, expected_response={
-  "name": "dev1",
+  "name": "dev1_",
   "serial_number": 1,
   "type": "device",
   "house_id": house_id
 })
 
 device2 = do_test("POST", f"add_device/{house_id}", data={
-  "name": "dev2",
+  "name": "dev2_",
   "serial_number": 2,
   "type": "sensor"
 }, expected_response={
-  "name": "dev2",
+  "name": "dev2_",
   "serial_number": 2,
   "type": "sensor",
   "house_id": house_id
