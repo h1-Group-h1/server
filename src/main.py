@@ -1,3 +1,6 @@
+import random
+import threading
+
 from typing import List
 import secrets
 
@@ -15,7 +18,10 @@ import time
 import os
 import hashlib
 import binascii
+import subprocess
 
+
+current_access_key = -1
 
 if constants.debug:
     models.Base.metadata.drop_all(engine)
@@ -476,3 +482,56 @@ def relay_status(house_id: int, db: Session = Depends(get_db), username: str = D
                 schemas.RelayStatusCommand().json(), encoding='utf-8'))
         return {"status": "OK"}
     raise HTTPException(status_code=400, detail="Unable to notify status")
+
+
+## System level tasks
+def check_creds(username: str, access_key: int):
+    global current_access_key
+    return username == "admin" and current_access_key > 0 and access_key == current_access_key
+
+def invalidate_access_key():
+    global current_access_key
+    current_access_key = -1
+    print("Access key invalidated")
+
+@app.get('/admin/get_access_key')
+def admin_get_access_key(username: str = Depends(get_current_username)):
+    if username == "admin":
+        key_file = open(constants.KEYFILE_PATH, "w")
+        global current_access_key
+        access_key_timer = threading.Timer(60*15, invalidate_access_key)
+        access_key_timer.start()
+        current_access_key = random.randint(1, 100000000)
+        key_file.write(str(current_access_key))
+        return {"status": "Key written to key file"}
+    raise HTTPException(status_code=401, detail="Unauthorized")
+
+@app.post('/admin/{access_key}/add_device/{device_sn}/{device_passwd}')
+def admin_add_device(access_key: int, device_sn: int,
+                     device_passwd: str, username: str = Depends(get_current_username)):
+    if check_creds(username, access_key):
+        devices_file = open(constants.DEVICEFILE_PATH, "w+")
+        for line in devices_file:
+            if line.split("-")[0] == str(device_sn):
+                raise HTTPException(status_code=400, detail="Device already added")
+        devices_file.write(str(device_sn) + "," + device_passwd)
+        devices_file.close()
+    raise HTTPException(status_code=401, detail="Unauthorized")
+
+@app.post('/admin/{access_key}/restart_broker/')
+def admin_restart_broker(access_key: int, username: str = Depends(get_current_username)):
+    if check_creds(username, access_key):
+        proc = subprocess.Popen(['sh', '/root/server/restart-broker.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # Restart broker script
+        proc.wait(100)
+        return {"status": "Restarted broker"}
+    raise HTTPException(status_code=401, detail="Unauthorized")
+
+@app.get('/admin/{access_key}/get_registered_devices')
+def admin_get_resistered_devices(access_key: int, username: str = Depends(get_current_username)):
+    if check_creds(username, access_key):
+        dev_file = open(constants.DEVICEFILE_PATH, "r")
+        devices = []
+        for line in dev_file:
+            devices.append(line.split(":")[0])
+        return devices
+    raise HTTPException(status_code=401, detail="Unauthorized")

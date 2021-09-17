@@ -11,3 +11,6 @@ info = 3
 
 DEVICE_SENSOR = "sensor"
 DEVICE_DEVICE = "device"
+
+KEYFILE_PATH = "/var/royal-automation/access_keys/key.txt"
+DEVICEFILE_PATH = "/etc/mosquitto/passwd/ra-pwfile.txt" # TODO: encrypt

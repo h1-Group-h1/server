@@ -1,1 +1,16 @@
 Sensors/devices have an even serial number
+
+For admin stuff:
+- Call admin_get_login_key
+- Log onto server - this login key is in file /var/royal-automation/login-key.*.key
+- Copy the access key inside this and use this in the paths.
+
+Paths:
+
+POST    /admin/get_access_key
+Parameters:
+- None
+Returns:
+- None
+
+
