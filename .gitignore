@@ -133,3 +133,4 @@ server-env/
 data/
 .idea/
 **/.deta/
+*.db
