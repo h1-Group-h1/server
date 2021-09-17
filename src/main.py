@@ -515,7 +515,7 @@ def admin_add_device(access_key: int, device_sn: int,
         for line in devices_file:
             if line.split("-")[0] == str(device_sn):
                 raise HTTPException(status_code=400, detail="Device already added")
-        devices_file.write(str(device_sn) + "," + device_passwd)
+        devices_file.write(str(device_sn) + ":" + device_passwd)
         devices_file.close()
         return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
