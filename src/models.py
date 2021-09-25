@@ -10,6 +10,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     name = Column(String)
     password = Column(String)
+    broker_username = Column(String)
+    broker_password = Column(String)
 
     user_houses = relationship("House", back_populates="owner")
 

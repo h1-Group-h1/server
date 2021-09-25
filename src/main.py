@@ -122,8 +122,9 @@ def compare_password_hash(user_password, db_password):
 
 client.on_connect = on_connect
 client.on_message = on_message
-# client.connect("com-ra-api.co.uk")
-# client.loop_start()
+client.username_pw_set("server", "this_is_the_server_password") # Set username and password
+#client.connect("com-ra-api.co.uk")
+#client.loop_start()
 print("MQTT client started")
 
 app = FastAPI()
@@ -214,7 +215,9 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    new_user = crud.create_user(db=db, user=user)
+    user_broker_password = user.email + "pw"
+    user_broker_username = user.email + "uname"
+    new_user = crud.create_user(db=db, user=user, broker_username=user_broker_username, broker_password=user_broker_password)
     return new_user
 
 
@@ -516,6 +519,7 @@ def admin_add_device(access_key: int, device_sn: int,
             if line.split("-")[0] == str(device_sn):
                 raise HTTPException(status_code=400, detail="Device already added")
         devices_file.write(str(device_sn) + ":" + device_passwd)
+        devices_file.write("client_" + str(device_sn) + ":")
         devices_file.close()
         return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
@@ -537,3 +541,5 @@ def admin_get_resistered_devices(access_key: int, username: str = Depends(get_cu
             devices.append(line.split(":")[0])
         return devices
     raise HTTPException(status_code=401, detail="Unauthorized")
+
+## Mosquitto admin stuff

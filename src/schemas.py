@@ -82,13 +82,10 @@ class UserCreate(UserBase):
     pass
 
 
-class UserResponse(BaseModel):
-    email: str
-    name: str
-
-
 class User(UserBase):
     id: int
+    broker_username: str
+    broker_password: str
 
     class Config:
         orm_mode = True

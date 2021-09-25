@@ -16,8 +16,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 0):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user: schemas.UserCreate):
-    db_user = models.User(email=user.email, name=user.name, password=user.password)
+def create_user(db: Session, user: schemas.UserCreate, broker_username: str, broker_password: str):
+    db_user = models.User(email=user.email, name=user.name, password=user.password, broker_username=broker_username, broker_password=broker_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
