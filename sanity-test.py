@@ -64,7 +64,9 @@ def do_test(method, endpoint, expected_response=None, data=None):
 
 
 
-do_test("GET", "", expected_response={"Debug": False})
+ver = do_test("GET", "")
+print("="*10 + "ROYAL AUTOMATION BACKEND TEST" + "="*10)
+print("VERSION:", ver['Version'])
 user = do_test("POST", "add_user", {"email": USERNAME, "name": "sanity"}, data={
   "email": USERNAME,
   "name": "sanity",
@@ -156,8 +158,7 @@ rule2 = do_test("POST", f"update_rule/{house_id}/{rule1['id']}", data={
   "device_sn": 1,
   "value": 0,
   "activation_value": 0,
-  "condition": "le",
-  "id": rule1['id']
+  "condition": "le"
 })
 rules_all = do_test("GET", f"get_rules/{house_id}")
 assert rule2 in rules_all, "Rule2 not added correctly"
@@ -185,7 +186,7 @@ do_test("POST", "operate_device", data={
   "value": 0
 }, expected_response={'status': 'OK'})
 
-do_test("DELETE", f"del_rule/{house_id}", expected_response={'status':'OK'})
+do_test("DELETE", f"del_rule/{rule2['id']}", expected_response={'status':'OK'})
 
 do_test("DELETE", f"del_device/{device1['id']}", expected_response={'status': 'OK'})
 do_test("DELETE", f"del_device/{device2['id']}", expected_response={'status': 'OK'})

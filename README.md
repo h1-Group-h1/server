@@ -1,12 +1,10 @@
 ###### Server for the application
 
-To run:<br>
-Linux:<br>
-`chmod +x run.sh <br>
-./run.sh`
-<br>Windows:<br>
-`server-env/bin/activate.ps1 (powershell) <br>
-cd src <br>
-uvicorn main:app --reload`
-<br>
-This will say the IP.
+## Install & run
+
+1. Clone the repo
+2. Create a user for mysql. Credentials are in src/database.py.
+3. Create 2 tables, ROYAL_AUTOMATION_BACKEND and ROYAL_AUTOMATION_BROKER_AUTH. Grant the user 'ra_admin' all privileges on these.
+4. Run:
+``` cd src/ 
+uvicorn main:app```

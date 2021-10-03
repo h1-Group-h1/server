@@ -7,11 +7,11 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    name = Column(String)
-    password = Column(String)
-    broker_username = Column(String)
-    broker_password = Column(String)
+    email = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    password = Column(String(256))
+    broker_username = Column(String(32))
+    broker_password = Column(String(32))
 
     user_houses = relationship("House", back_populates="owner")
 
@@ -20,7 +20,7 @@ class House(Base):
     __tablename__ = "houses"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+    name = Column(String(32), index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="user_houses")
@@ -34,8 +34,8 @@ class Device(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     serial_number = Column(Integer, unique=True, index=True)
-    name = Column(String)
-    type = Column(String)
+    name = Column(String(32))
+    type = Column(String(32))
     house_id = Column(Integer, ForeignKey("houses.id"))
 
     house_devices = relationship("House", back_populates="devices")
@@ -50,7 +50,7 @@ class Rule(Base):
     sensor_sn = Column(Integer)
     value = Column(Integer)
     activation_value = Column(Integer)
-    condition = Column(String)
+    condition = Column(String(32))
     house_id = Column(Integer, ForeignKey("houses.id"))
     device_sn = Column(Integer, ForeignKey("devices.id"))
 
@@ -65,10 +65,29 @@ class Schedule(Base):
     time_hours = Column(Integer)
     time_minutes = Column(Integer)
     value = Column(Integer)
-    repeat = Column(String)
+    repeat = Column(String(32))
 
     house_id = Column(Integer, ForeignKey("houses.id"))
     device_id = Column(Integer, ForeignKey("devices.id"))
 
     schedule_devices = relationship("Device", back_populates="device_schedules")
     schedule_houses = relationship("House", back_populates="house_schedules")
+
+"""
+class BrokerUser(Base):
+    __tablename__ = "broker_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(32))
+    password = Column(String(32))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    users = relationship("User", back_populates="users")
+
+class BrokerAcl(Base):
+    __tablename__ = "broker_acl"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(32))
+    topic = Column(String(32))
+    rw = Column(Integer)
+"""
