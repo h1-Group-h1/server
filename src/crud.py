@@ -141,6 +141,16 @@ def delete_user(db: Session, user_id: int):
     return delete_item(db, get_user, user_id)
 
 
+def update_rule(db: Session, rule_id: int, newRule: schemas.RuleCreate):
+    db.query(models.Rule).filter(models.Rule.id == rule_id) \
+        .update({models.Rule.sensor_sn: newRule.sensor_sn,
+                 models.Rule.value: newRule.value,
+                 models.Rule.activation_value: newRule.activation_value,
+                 models.Rule.condition: newRule.condition,
+                 models.Rule.device_sn: newRule.device_sn}, synchronize_session=False)
+    db.commit()
+    return get_rule(db, rule_id)
+
 def update_device_name(db: Session, device_id: int, new_name: str):
     db.query(models.Device).filter(models.Device.id == device_id) \
         .update({models.Device.name: new_name}, synchronize_session=False)

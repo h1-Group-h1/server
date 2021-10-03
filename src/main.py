@@ -441,8 +441,8 @@ def del_house(house_id: int, db: Session = Depends(get_db),
 def update_rule(house_id: int, rule_id: int, new_rule: schemas.RuleCreate, db: Session = Depends(get_db),
                 username: str = Depends(get_current_username)):
     # Delete rule and add
-    del_rule(rule_id, db, username)
-    return add_rule(house_id, new_rule, db, username)
+    
+    return crud.update_rule(db, rule_id, new_rule)
 
 
 # Not needed now
