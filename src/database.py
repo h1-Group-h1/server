@@ -6,7 +6,7 @@ import constants
 #if constants.debug:
 #    SQLALCHEMY_DATABASE_URL = "sqlite:///./../data/database.db"  # For testing, real is later
 
-SQLALCHEMY_DATABASE_URL = "mysql://ra_admin:hvewojkbcsdhioqwfdqh@localhost/ROYAL_AUTOMATION_BACKEND"  # Deployed URL
+SQLALCHEMY_DATABASE_URL = "mysql://ra_admin:hvewojkbcsdhioqwfdqh££122E@localhost/ROYAL_AUTOMATION_BACKEND"  # Deployed URL
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL#, connect_args={"check_same_thread": False}

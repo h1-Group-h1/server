@@ -20,6 +20,7 @@ import hashlib
 import binascii
 import subprocess
 
+from broker_auth.auth import add_device, add_user, add_device_to_user
 
 current_access_key = -1
 
@@ -122,7 +123,7 @@ def compare_password_hash(user_password, db_password):
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.username_pw_set("server", "this_is_the_server_password") # Set username and password
+client.username_pw_set("server", "r3qg23JHIiubgqioj12bd290cbIGBUIGB") # Set username and password
 #client.connect("com-ra-api.co.uk")
 #client.loop_start()
 print("MQTT client started")
@@ -185,7 +186,9 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
                 raise HTTPException(
                     status_code=400, detail=f"Incorrect device type {device.type}")
             log(f"Added device: {device.serial_number}", constants.info)
-            return crud.create_house_device(db, device, house_id)
+            db_device = crud.create_house_device(db, device, house_id)
+            add_device_to_user(db_device.serial_number, db_user.email)
+            return db_device
     raise HTTPException(status_code=400, detail="Unable to add device")
 
 
@@ -215,9 +218,8 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    user_broker_password = user.email + "pw"
-    user_broker_username = user.email + "uname"
-    new_user = crud.create_user(db=db, user=user, broker_username=user_broker_username, broker_password=user_broker_password)
+    new_user = crud.create_user(db=db, user=user)
+    add_user(user.email, user.password)
     return new_user
 
 
@@ -521,6 +523,7 @@ def admin_add_device(access_key: int, device_sn: int,
         devices_file.write(str(device_sn) + ":" + device_passwd)
         devices_file.write("client_" + str(device_sn) + ":")
         devices_file.close()
+        add_device(device_sn, device_passwd)
         return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 
