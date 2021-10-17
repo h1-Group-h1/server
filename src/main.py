@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 import paho.mqtt.client as mqtt
+from starlette.requests import Request
 
 import crud
 import models
@@ -20,7 +21,7 @@ import hashlib
 import binascii
 import subprocess
 
-from broker_auth.auth import add_device, add_user, add_device_to_user
+#from broker_auth.auth import add_device, add_user, add_device_to_user
 
 current_access_key = -1
 
@@ -187,7 +188,7 @@ def add_device(house_id: int, device: schemas.DeviceCreate, db: Session = Depend
                     status_code=400, detail=f"Incorrect device type {device.type}")
             log(f"Added device: {device.serial_number}", constants.info)
             db_device = crud.create_house_device(db, device, house_id)
-            add_device_to_user(db_device.serial_number, db_user.email)
+            #add_device_to_user(db_device.serial_number, db_user.email)
             return db_device
     raise HTTPException(status_code=400, detail="Unable to add device")
 
@@ -219,7 +220,7 @@ def add_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     new_user = crud.create_user(db=db, user=user)
-    add_user(user.email, user.password)
+    #add_user(user.email, user.password)
     return new_user
 
 
@@ -523,7 +524,7 @@ def admin_add_device(access_key: int, device_sn: int,
         devices_file.write(str(device_sn) + ":" + device_passwd)
         devices_file.write("client_" + str(device_sn) + ":")
         devices_file.close()
-        add_device(device_sn, device_passwd)
+        #add_device(device_sn, device_passwd)
         return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -546,3 +547,15 @@ def admin_get_resistered_devices(access_key: int, username: str = Depends(get_cu
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 ## Mosquitto admin stuff
+
+@app.post('/broker_auth/auth')
+def auth(request: Request):
+    print(request.body())
+
+@app.post('/broker_auth/superuser')
+def superuser(request: Request):
+    print(request.body())
+
+@app.post('/broker_auth/acl')
+def acl(request: Request):
+    print(request.body())
