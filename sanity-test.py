@@ -4,6 +4,7 @@ from requests.auth import HTTPBasicAuth
 import traceback
 from termcolor import colored
 import sys
+import paho.mqtt.client as client
 
 passes: int = 0
 fails: int = 0
@@ -62,8 +63,18 @@ def do_test(method, endpoint, expected_response=None, data=None):
             #global fails
             fails += 1
 
+def test_mqtt_security(user, device1, device2):
+  try:
+    mqtt = client.Client("client-"+user["email"])
+    mqtt.username_pw_set(user["broker_username"], user["broker_password"])
+    mqtt.connect("com-ra-api.co.uk", 1883)
+  except ConnectionRefusedError as cre:
+     print("\033[91m {}\033[00m" .format("Connection refused to mqtt broker"))
 
-
+if "--drop" in sys.argv:
+  do_test("POST", "debug/drop_all")
+dev_log1 = do_test("POST", f"debug/add_device_to_log/{1}")
+dev_log2 = do_test("POST", f"debug/add_device_to_log/{2}")
 ver = do_test("GET", "")
 print("="*10 + "ROYAL AUTOMATION BACKEND TEST" + "="*10)
 print("VERSION:", ver['Version'])
@@ -113,7 +124,6 @@ device2 = do_test("POST", f"add_device/{house_id}", data={
   "type": "sensor",
   "house_id": house_id
 })
-
 devices_all = do_test("GET", f"get_devices/{house_id}")
 assert device1 in devices_all, "Device1 not added correctly"
 assert device2 in devices_all, "Device2 not added correctly"
@@ -130,6 +140,18 @@ device2 = do_test("POST", f"change_device_name/{device2['id']}/dev2_new", data={
   "house_id": house_id,
   "id": device2["id"]
 })
+
+# TODO: Test if:
+#   User can listen to devices
+#   User cannot publish
+#   Devices can listen only to devices/
+#   Devices can publish only to status/
+
+if "--mqtt" in sys.argv:
+  test_mqtt_security(user, device1, device2)
+
+
+
 # Add rules and schedule
 rule1 = do_test("POST", f"add_rule/{house_id}", data={
   "sensor_sn": 2,
@@ -166,13 +188,13 @@ assert rule2 in rules_all, "Rule2 not added correctly"
 sched1 = do_test("POST", f"add_schedule/{house_id}", data={
   "time_hours": 10,
   "time_minutes": 10,
-  "device_id": 1,
+  "device_id": device1["id"],
   "value": 0,
   "repeat": "1234567"
 }, expected_response={
   "time_hours": 10,
   "time_minutes": 10,
-  "device_id": 1,
+  "device_id": device1["id"],
   "value": 0,
   "repeat": "1234567"
 })
@@ -195,7 +217,8 @@ for house in houses:
     do_test("DELETE", f"del_house/{house['id']}", expected_response={'status': 'OK'})
 
 do_test("DELETE", f"del_user/{user['id']}", expected_response={'status': 'OK'})
-
+do_test("DELETE", f"debug/remove_device_from_log/{1}")
+do_test("DELETE", f"debug/remove_device_from_log/{2}")
 
 print("FINISHED TEST SESSION")
 print("Passes:           ", passes)

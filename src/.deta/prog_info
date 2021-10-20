@@ -1,1 +1,0 @@
-{"id":"fe869926-2128-412a-86a0-2e9f4d647b25","space":4145,"runtime":"python3.7","name":"ra_server","path":"xgvhln","project":"a0k5va3q","account":"144798365827","region":"eu-central-1","deps":["fastapi","uvicorn[standard]","paho-mqtt","sqlalchemy"],"envs":null,"public":true,"log_level":"debug","cron":"","reload_deps":false}
