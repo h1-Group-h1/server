@@ -1,6 +1,6 @@
 import requests
 # requires a private api key
-config_file = "src/api_key.txt"
+config_file = "api_key.txt"
 
 with open(config_file, 'r') as f:
 	api_key = f.read()
