@@ -11,7 +11,7 @@ class User(Base):
     name = Column(String(32))
     password = Column(String(256))
     broker_username = Column(String(32))
-    broker_password = Column(String(32))
+    broker_password = Column(String(256))
 
     user_houses = relationship("House", back_populates="owner")
 
@@ -52,7 +52,7 @@ class Rule(Base):
     activation_value = Column(Integer)
     condition = Column(String(32))
     house_id = Column(Integer, ForeignKey("houses.id"))
-    device_sn = Column(Integer, ForeignKey("devices.id"))
+    device_sn = Column(Integer, ForeignKey("devices.serial_number"))
 
     house_rules = relationship("House", back_populates="rules")
     device_devices = relationship("Device", back_populates="rule_devices")
