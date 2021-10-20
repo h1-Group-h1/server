@@ -24,7 +24,7 @@ import subprocess
 #from broker_auth.auth import add_device, add_user, add_device_to_user
 
 current_access_key = -1
-
+print(constants.debug)
 if constants.debug:
     models.Base.metadata.drop_all(engine)
     models.Base.metadata.create_all(bind=engine)
@@ -339,10 +339,12 @@ def get_rules(house_id: int, db: Session = Depends(get_db),
 def add_schedule(house_id: int, schedule: schemas.ScheduleCreate, db: Session = Depends(get_db),
                  username: str = Depends(get_current_username)):
     # Set schedule, communicate to devices
+    print("Adding schedule")
     db_device = crud.get_device(db, schedule.device_id)
+    print(db_device)
     if not db_device:
         raise HTTPException(status_code=400, detail="Unable to set schedule")
-
+    print("Got device")
     db_user = crud.get_device_owner(db, db_device.id)
     if db_user and db_user.email == username:
         db_schedule = crud.create_schedule_item(db, schedule, house_id=house_id)
@@ -354,6 +356,7 @@ def add_schedule(house_id: int, schedule: schemas.ScheduleCreate, db: Session = 
             schedule_id=db_schedule.id,
             repeat=db_schedule.repeat
         )
+        print("Made payload")
         print(payload.json())
 
         notify_device(str(db_device.serial_number),
@@ -559,3 +562,11 @@ def superuser(request: Request):
 @app.post('/broker_auth/acl')
 def acl(request: Request):
     print(request.body())
+
+
+@app.post('/debug/drop_all')
+def drop_all():
+    if constants.debug:
+        models.Base.metadata.drop_all(engine)
+        models.Base.metadata.create_all(bind=engine)
+        return "OK"
