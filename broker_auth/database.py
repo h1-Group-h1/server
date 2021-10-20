@@ -1,12 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import constants
 
-#if constants.debug:
-#    SQLALCHEMY_DATABASE_URL = "sqlite:///./../data/database.db"  # For testing, real is later
-
-SQLALCHEMY_DATABASE_URL = "mariadb://ra_admin:hvewojkbcsdhioqwfdqh££122E@localhost/ROYAL_AUTOMATION_BACKEND"  # Deployed URL
+SQLALCHEMY_DATABASE_URL = "mysql://ra_admin:hvewojkbcsdhioqwfdqh££122E@localhost/ROYAL_AUTOMATION_BROKER_AUTH"  # Deployed URL
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL#, connect_args={"check_same_thread": False}

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+import random
 
 
 def get_user(db: Session, user_id: int):
@@ -16,11 +17,15 @@ def get_users(db: Session, skip: int = 0, limit: int = 0):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user: schemas.UserCreate, broker_username: str, broker_password: str):
-    db_user = models.User(email=user.email, name=user.name, password=user.password, broker_username=broker_username, broker_password=broker_password)
+def create_user(db: Session, user: schemas.UserCreate):
+    broker_password = ""
+    for i in range(255):
+        broker_password += chr(random.randint(65, 122))
+    db_user = models.User(email=user.email, name=user.name, password=user.password, broker_username="client-"+user.email, broker_password=broker_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
     return db_user
 
 
