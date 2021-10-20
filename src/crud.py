@@ -4,6 +4,13 @@ import models
 import schemas
 import random
 
+def create_random_string(length: int):
+    string = ""
+    for i in range(length):
+        string += chr(random.randint(65, 122))
+    return string
+    
+
 
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
@@ -18,9 +25,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 0):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    broker_password = ""
-    for i in range(255):
-        broker_password += chr(random.randint(65, 122))
+    broker_password = create_random_string(255)
     db_user = models.User(email=user.email, name=user.name, password=user.password, broker_username="client-"+user.email, broker_password=broker_password)
     db.add(db_user)
     db.commit()
@@ -193,3 +198,22 @@ def get_schedule_owner(db: Session, schedule_id: int):
 
 def get_schedule_items_by_house(db: Session, house_id: int):
     return db.query(models.Schedule).filter(models.Schedule.house_id == house_id).all()
+
+
+def get_device_broker_password(db: Session, serial_number: int):
+    return db.query(models.DeviceLog).filter(models.DeviceLog.serial_number == serial_number).first().broker_password
+
+
+def get_device_log(db: Session, serial_number: int):
+    return db.query(models.DeviceLog).filter(models.DeviceLog.serial_number == serial_number).first()
+
+def add_device_log(db: Session, serial_number: int, broker_password: str):
+    db_device_log = models.DeviceLog(serial_number=serial_number, broker_password=broker_password)
+    db.add(db_device_log)
+    db.commit()
+    db.refresh(db_device_log)
+    return db_device_log
+
+def remove_device_log(db: Session, serial_number: int):
+    print(serial_number)
+    return delete_item(db, get_device_log, serial_number)

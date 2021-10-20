@@ -33,7 +33,7 @@ class Device(Base):
     __tablename__ = "devices"
 
     id = Column(Integer, primary_key=True, index=True)
-    serial_number = Column(Integer, unique=True, index=True)
+    serial_number = Column(Integer, ForeignKey("device_log.serial_number"))
     name = Column(String(32))
     type = Column(String(32))
     house_id = Column(Integer, ForeignKey("houses.id"))
@@ -41,6 +41,7 @@ class Device(Base):
     house_devices = relationship("House", back_populates="devices")
     rule_devices = relationship("Rule", back_populates="device_devices")
     device_schedules = relationship("Schedule", back_populates="schedule_devices")
+    device_logs = relationship("DeviceLog", back_populates="devices")
 
 
 class Rule(Base):
@@ -73,6 +74,15 @@ class Schedule(Base):
     schedule_devices = relationship("Device", back_populates="device_schedules")
     schedule_houses = relationship("House", back_populates="house_schedules")
 
+
+class DeviceLog(Base):
+    __tablename__ = "device_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    serial_number = Column(Integer, unique=True, index=True)
+    broker_password = Column(String(32))
+
+    devices = relationship("Device", back_populates="device_logs")
 """
 class BrokerUser(Base):
     __tablename__ = "broker_users"

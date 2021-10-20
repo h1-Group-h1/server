@@ -1,5 +1,6 @@
 from sqlalchemy.sql.expression import intersect_all
 from pydantic import BaseModel
+from sqlalchemy.sql.sqltypes import Enum
 
 
 # Standard JSON items
@@ -164,3 +165,13 @@ class AddScheduleCommand(CommandBase):
 class DelScheduleCommand(CommandBase):
     type = "ds"
     schedule_id: int
+
+
+class Auth(BaseModel):
+    auth: str
+    username: str
+    password: str
+
+class SubscribeAuth(BaseModel):
+    username: str
+    topic: str
