@@ -127,9 +127,9 @@ def compare_password_hash(user_password, db_password):
 client.on_connect = on_connect
 client.on_message = on_message
 broker_password = crud.create_random_string(64)
-client.username_pw_set("server", broker_password) # Set username and password
-#client.connect("com-ra-api.co.uk")
-#client.loop_start()
+#client.username_pw_set("server", broker_password) # Set username and password
+client.connect("com-ra-api.co.uk")
+client.loop_start()
 print("MQTT client started")
 
 app = FastAPI()
@@ -616,4 +616,4 @@ if __name__ == "__main__":
         uvicorn.run("main:app", host="0.0.0.0",\
                 ssl_keyfile="/etc/letsencrypt/live/com-ra-api.co.uk/privkey.pem", \
                 ssl_certfile="/etc/letsencrypt/live/com-ra-api.co.uk/fullchain.pem",\
-                port=443, log_config="log.yaml")
+                port=443, log_config="/root/server/src/log.yaml")
