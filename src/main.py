@@ -607,3 +607,13 @@ def remove_device_from_log(serial_number: int, db: Session = Depends(get_db)):
     if crud.remove_device_log(db, serial_number) == 0:
         return "OK"
     raise HTTPException(status_code=400, detail="Fail")
+
+if __name__ == "__main__":
+    import uvicorn
+    if constants.debug:
+        uvicorn.run("main:app", host="127.0.0.1", port=8000, log_level="debug")
+    else:
+        uvicorn.run("main:app", host="0.0.0.0",\
+                ssl_keyfile="/etc/letsencrypt/live/com-ra-api.co.uk/privkey.pem", \
+                ssl_certfile="/etc/letsencrypt/live/com-ra-api.co.uk/fullchain.pem",\
+                port=443, log_config="log.yaml")
