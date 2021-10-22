@@ -127,7 +127,7 @@ def compare_password_hash(user_password, db_password):
 client.on_connect = on_connect
 client.on_message = on_message
 broker_password = crud.create_random_string(64)
-#client.username_pw_set("server", broker_password) # Set username and password
+client.username_pw_set("server", broker_password) # Set username and password
 client.connect("com-ra-api.co.uk")
 client.loop_start()
 print("MQTT client started")
@@ -533,7 +533,7 @@ def admin_add_device(access_key: int, device_sn: int,
         #add_device(device_sn, device_passwd)
         return {"status": "Added successfully"}
     raise HTTPException(status_code=401, detail="Unauthorized")
-
+"""
 @app.post('/admin/{access_key}/restart_broker/')
 def admin_restart_broker(access_key: int, username: str = Depends(get_current_username)):
     if check_creds(username, access_key):
@@ -541,15 +541,11 @@ def admin_restart_broker(access_key: int, username: str = Depends(get_current_us
         proc.wait(100)
         return {"status": "Restarted broker"}
     raise HTTPException(status_code=401, detail="Unauthorized")
-
+"""
 @app.get('/admin/{access_key}/get_registered_devices')
 def admin_get_resistered_devices(access_key: int, username: str = Depends(get_current_username)):
     if check_creds(username, access_key):
-        dev_file = open(constants.DEVICEFILE_PATH, "r")
-        devices = []
-        for line in dev_file:
-            devices.append(line.split(":")[0])
-        return devices
+        pass
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 ## Mosquitto admin stuff
@@ -558,6 +554,7 @@ def admin_get_resistered_devices(access_key: int, username: str = Depends(get_cu
 def auth(auth: schemas.Auth, db: Session = Depends(get_db)):
     if auth.auth == "server":
         global broker_password
+        print(auth.username, auth.password, broker_password)
         if auth.username == "server" and auth.password == broker_password:
             return {"auth" : "allowed"}
     elif auth.auth == "device":
@@ -611,6 +608,7 @@ def remove_device_from_log(serial_number: int, db: Session = Depends(get_db)):
 if __name__ == "__main__":
     import uvicorn
     if constants.debug:
+        print("Server broker password:", broker_password)
         uvicorn.run("main:app", host="127.0.0.1", port=8000, log_level="debug")
     else:
         uvicorn.run("main:app", host="0.0.0.0",\
