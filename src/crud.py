@@ -217,3 +217,6 @@ def add_device_log(db: Session, serial_number: int, broker_password: str):
 def remove_device_log(db: Session, serial_number: int):
     print(serial_number)
     return delete_item(db, get_device_log, serial_number)
+
+def get_device_logs(db: Session):
+    return db.query(models.Device).all()

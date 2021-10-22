@@ -519,19 +519,15 @@ def admin_get_access_key(username: str = Depends(get_current_username)):
         return {"status": "Key written to key file"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 
-@app.post('/admin/{access_key}/add_device/{device_sn}/{device_passwd}')
-def admin_add_device(access_key: int, device_sn: int,
-                     device_passwd: str, username: str = Depends(get_current_username)):
-    if check_creds(username, access_key):
-        devices_file = open(constants.DEVICEFILE_PATH, "w+")
-        for line in devices_file:
-            if line.split("-")[0] == str(device_sn):
-                raise HTTPException(status_code=400, detail="Device already added")
-        devices_file.write(str(device_sn) + ":" + device_passwd)
-        devices_file.write("client_" + str(device_sn) + ":")
-        devices_file.close()
-        #add_device(device_sn, device_passwd)
-        return {"status": "Added successfully"}
+@app.post('/admin/add_device/{device_sn}/{device_passwd}')
+def admin_add_device(device_sn: int,
+                     device_passwd: str, username: str = Depends(get_current_username), db: Session = Depends(get_db)):
+    if username == "ra_admin":
+        prev_device = crud.get_device_log(db, device_sn)
+        if prev_device is not None:
+            raise HTTPException(status_code=400, detail="Device already added")
+        device_log = crud.add_device_log(db, device_sn, device_passwd)
+        return device_log
     raise HTTPException(status_code=401, detail="Unauthorized")
 """
 @app.post('/admin/{access_key}/restart_broker/')
@@ -542,10 +538,10 @@ def admin_restart_broker(access_key: int, username: str = Depends(get_current_us
         return {"status": "Restarted broker"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 """
-@app.get('/admin/{access_key}/get_registered_devices')
-def admin_get_resistered_devices(access_key: int, username: str = Depends(get_current_username)):
-    if check_creds(username, access_key):
-        pass
+@app.get('/admin/get_registered_devices')
+def admin_get_resistered_devices(username: str = Depends(get_current_username), db: Session = Depends(get_db)):
+    if username == "ra_admin":
+        return crud.get_device_logs(db)
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 ## Mosquitto admin stuff
