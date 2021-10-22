@@ -218,5 +218,5 @@ def remove_device_log(db: Session, serial_number: int):
     print(serial_number)
     return delete_item(db, get_device_log, serial_number)
 
-def get_device_logs(db: Session):
-    return db.query(models.Device).all()
+def get_device_logs(db: Session, skip: int = 0, limit: int = 0):
+    return db.query(models.DeviceLog).offset(skip).limit(limit).all()
