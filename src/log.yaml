@@ -1,0 +1,27 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  standard:
+    format: "%(asctime)s - %(levelname)s - %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: standard
+    stream: ext://sys.stdout
+  file:
+    class : logging.FileHandler
+    formatter: standard
+    filename: app_log.log
+    level: INFO
+
+loggers:
+  uvicorn:
+    error:
+      propagate: true
+
+root:
+  level: INFO
+  handlers: [console, file]
+  propagate: no

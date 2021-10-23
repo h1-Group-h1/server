@@ -29,6 +29,8 @@ if constants.debug:
     models.Base.metadata.drop_all(engine)
     models.Base.metadata.create_all(bind=engine)
 
+    
+
 client = mqtt.Client()
 
 
@@ -124,9 +126,10 @@ def compare_password_hash(user_password, db_password):
 
 client.on_connect = on_connect
 client.on_message = on_message
-client.username_pw_set("server", "r3qg23JHIiubgqioj12bd290cbIGBUIGB") # Set username and password
-#client.connect("com-ra-api.co.uk")
-#client.loop_start()
+broker_password = crud.create_random_string(64)
+client.username_pw_set("server", broker_password) # Set username and password
+client.connect("com-ra-api.co.uk")
+client.loop_start()
 print("MQTT client started")
 
 app = FastAPI()
@@ -516,21 +519,17 @@ def admin_get_access_key(username: str = Depends(get_current_username)):
         return {"status": "Key written to key file"}
     raise HTTPException(status_code=401, detail="Unauthorized")
 
-@app.post('/admin/{access_key}/add_device/{device_sn}/{device_passwd}')
-def admin_add_device(access_key: int, device_sn: int,
-                     device_passwd: str, username: str = Depends(get_current_username)):
-    if check_creds(username, access_key):
-        devices_file = open(constants.DEVICEFILE_PATH, "w+")
-        for line in devices_file:
-            if line.split("-")[0] == str(device_sn):
-                raise HTTPException(status_code=400, detail="Device already added")
-        devices_file.write(str(device_sn) + ":" + device_passwd)
-        devices_file.write("client_" + str(device_sn) + ":")
-        devices_file.close()
-        #add_device(device_sn, device_passwd)
-        return {"status": "Added successfully"}
+@app.post('/admin/add_device/{device_sn}/{device_passwd}')
+def admin_add_device(device_sn: int,
+                     device_passwd: str, username: str = Depends(get_current_username), db: Session = Depends(get_db)):
+    if username == "ra_admin":
+        prev_device = crud.get_device_log(db, device_sn)
+        if prev_device is not None:
+            raise HTTPException(status_code=400, detail="Device already added")
+        device_log = crud.add_device_log(db, device_sn, device_passwd)
+        return device_log
     raise HTTPException(status_code=401, detail="Unauthorized")
-
+"""
 @app.post('/admin/{access_key}/restart_broker/')
 def admin_restart_broker(access_key: int, username: str = Depends(get_current_username)):
     if check_creds(username, access_key):
@@ -538,30 +537,43 @@ def admin_restart_broker(access_key: int, username: str = Depends(get_current_us
         proc.wait(100)
         return {"status": "Restarted broker"}
     raise HTTPException(status_code=401, detail="Unauthorized")
-
-@app.get('/admin/{access_key}/get_registered_devices')
-def admin_get_resistered_devices(access_key: int, username: str = Depends(get_current_username)):
-    if check_creds(username, access_key):
-        dev_file = open(constants.DEVICEFILE_PATH, "r")
-        devices = []
-        for line in dev_file:
-            devices.append(line.split(":")[0])
-        return devices
+"""
+@app.get('/admin/get_registered_devices')
+def admin_get_resistered_devices(username: str = Depends(get_current_username), db: Session = Depends(get_db)):
+    if username == "ra_admin":
+        return crud.get_device_logs(db)
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 ## Mosquitto admin stuff
 
 @app.post('/broker_auth/auth')
-def auth(request: Request):
-    print(request.body())
+def auth(auth: schemas.Auth, db: Session = Depends(get_db)):
+    if auth.auth == "server":
+        global broker_password
+        print(auth.username, auth.password, broker_password)
+        if auth.username == "server" and auth.password == broker_password:
+            return {"auth" : "allowed"}
+    elif auth.auth == "device":
+        sn = int(auth.username.split("-")[1])
+        if crud.get_device_broker_password(db, sn) == auth.password:
+            return {"auth" : "allowed"}
+    elif auth.auth == "phone":
+        email = auth.username.split("-")[1]
+        db_user = crud.get_user_by_email(db, email)
+        if db_user.broker_password == auth.password:
+            return {"auth" : "allowed"}
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
-@app.post('/broker_auth/superuser')
-def superuser(request: Request):
-    print(request.body())
 
-@app.post('/broker_auth/acl')
-def acl(request: Request):
-    print(request.body())
+
+@app.post('/broker_auth/check_phone_listen')
+def check_phone_listen(auth: schemas.SubscribeAuth, db: Session = Depends(get_db)):
+    email = auth.username.split("-")[1]
+    serial_number = auth.topic.split("/")[-1]
+    db_house = crud.get_device_house(db, serial_number)
+    if crud.get_user(db, db_house.owner_id).email == email:
+        return {"auth": "allowed"}
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @app.post('/debug/drop_all')
@@ -570,3 +582,32 @@ def drop_all():
         models.Base.metadata.drop_all(engine)
         models.Base.metadata.create_all(bind=engine)
         return "OK"
+
+@app.post('/debug/get_broker_password')
+def get_broker_password():
+    if constants.debug:
+        global broker_password
+        return {"pass": broker_password}
+
+@app.post('/debug/add_device_to_log/{serial_number}')
+def add_device_log(serial_number: int, db: Session = Depends(get_db)):
+    dev = crud.add_device_log(db, serial_number, crud.create_random_string(5))
+    return dev
+
+
+@app.delete('/debug/remove_device_from_log/{serial_number}')
+def remove_device_from_log(serial_number: int, db: Session = Depends(get_db)):
+    if crud.remove_device_log(db, serial_number) == 0:
+        return "OK"
+    raise HTTPException(status_code=400, detail="Fail")
+
+if __name__ == "__main__":
+    import uvicorn
+    if constants.debug:
+        print("Server broker password:", broker_password)
+        uvicorn.run("main:app", host="127.0.0.1", port=8000, log_level="debug")
+    else:
+        uvicorn.run("main:app", host="0.0.0.0",\
+                ssl_keyfile="/etc/letsencrypt/live/com-ra-api.co.uk/privkey.pem", \
+                ssl_certfile="/etc/letsencrypt/live/com-ra-api.co.uk/fullchain.pem",\
+                port=443, log_config="/root/server/src/log.yaml")

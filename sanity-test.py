@@ -73,6 +73,8 @@ def test_mqtt_security(user, device1, device2):
 
 if "--drop" in sys.argv:
   do_test("POST", "debug/drop_all")
+dev_log1 = do_test("POST", f"debug/add_device_to_log/{1}")
+dev_log2 = do_test("POST", f"debug/add_device_to_log/{2}")
 ver = do_test("GET", "")
 print("="*10 + "ROYAL AUTOMATION BACKEND TEST" + "="*10)
 print("VERSION:", ver['Version'])
@@ -215,7 +217,8 @@ for house in houses:
     do_test("DELETE", f"del_house/{house['id']}", expected_response={'status': 'OK'})
 
 do_test("DELETE", f"del_user/{user['id']}", expected_response={'status': 'OK'})
-
+do_test("DELETE", f"debug/remove_device_from_log/{1}")
+do_test("DELETE", f"debug/remove_device_from_log/{2}")
 
 print("FINISHED TEST SESSION")
 print("Passes:           ", passes)

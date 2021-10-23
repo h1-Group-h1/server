@@ -1,3 +1,4 @@
+echo "Deploy script - will deploy application and mosquitto broker"
+source /root/server/.venv/bin/activate
 VER="1.3.1"
-cd src
-DEBUG_MODE=False VER=$VER nohup uvicorn main:app --host 0.0.0.0 --ssl-keyfile=/etc/letsencrypt/live/com-ra-api.co.uk/privkey.pem --ssl-certfile=/etc/letsencrypt/live/com-ra-api.co.uk/fullchain.pem  --port 443
+DEBUG_MODE=False VER=$VER python3 /root/server/src/main.py 

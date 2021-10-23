@@ -1,0 +1,12 @@
+[Unit]
+Description=Royal automation broker and HTTP server
+Requires=network.target
+After=network.target mosquitto.service
+
+[Service]
+Environment=DEBUG_MODE=False
+Environment=VER="1.3.3"
+ExecStart=/usr/bin/python3 /root/server/src/main.py
+ExecStop=/sbin/kill $MainPID
+[Install]
+WantedBy=multi-user.target
