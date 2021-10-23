@@ -8,7 +8,7 @@ with open(config_file, 'r') as f:
 
       
 def get_weather(city, country, API_KEY):
-    BASE_URL =  f'https://api.weatherbit.io/v2.0/current?city={city}&country=GB&&key={API_KEY}'
+    BASE_URL =  f'https://api.weatherbit.io/v2.0/current?city={city}&country={country}&&key={API_KEY}'
     
     print(BASE_URL)
     response = requests.get(BASE_URL)
