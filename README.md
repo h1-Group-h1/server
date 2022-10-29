@@ -1,4 +1,4 @@
-###### Server for the application
+# Server for our home window system
 
 ## Install & run
 
