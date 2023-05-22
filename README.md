@@ -8,3 +8,5 @@
 4. Run:
 ``` cd src/ 
 uvicorn main:app```
+
+1073 LOC
